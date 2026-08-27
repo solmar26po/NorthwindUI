@@ -33,6 +33,12 @@ function ThemeManager:SetAccent(color)
     return self
 end
 
+function ThemeManager:SetTextGradient(startColor, finishColor, rotation, enabled)
+    assert(self.Library, "Call ThemeManager:SetLibrary first")
+    self.Library:SetTextGradient(startColor, finishColor, rotation, enabled)
+    return self
+end
+
 function ThemeManager:GetThemes()
     assert(self.Library, "Call ThemeManager:SetLibrary first")
     local names = {}
@@ -44,5 +50,4 @@ function ThemeManager:GetThemes()
 end
 
 return ThemeManager
-
 
