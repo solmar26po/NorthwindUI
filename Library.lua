@@ -13,12 +13,18 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 local Northwind = {
-    Version = "1.1.0",
+    Version = "1.2.0",
     Flags = {},
     Options = {},
     Windows = {},
     Configs = {},
     ActiveTheme = "Midnight",
+    TextGradient = {
+        Enabled = true,
+        Start = Color3.fromRGB(245, 247, 255),
+        Finish = Color3.fromRGB(168, 176, 255),
+        Rotation = 18,
+    },
     Themes = {
         Midnight = {
             Background = Color3.fromRGB(13, 15, 28),
@@ -61,17 +67,23 @@ local Northwind = {
         },
     },
     _themeBindings = {},
+    _textGradients = {},
     _configProvider = nil,
 }
 
 local function create(className, properties)
     local instance = Instance.new(className)
     for property, value in pairs(properties or {}) do
-        if property ~= "Parent" then
+        if property ~= "Parent" and property ~= "NoGradient" then
             instance[property] = value
         end
     end
     instance.Parent = properties and properties.Parent or nil
+    if className == "TextLabel"
+        and not (properties and properties.NoGradient)
+        and Northwind._attachTextGradient then
+        Northwind:_attachTextGradient(instance)
+    end
     return instance
 end
 
@@ -361,8 +373,67 @@ local function tableToColor(value)
     return Color3.fromRGB(value.R or 255, value.G or 255, value.B or 255)
 end
 
+local function colorToHex(color)
+    local value = colorToTable(color)
+    return string.format("#%02X%02X%02X", value.R, value.G, value.B)
+end
+
+local function hexToColor(value)
+    local cleaned = tostring(value or ""):gsub("#", ""):gsub("%s", "")
+    if #cleaned ~= 6 or not string.match(cleaned, "^[%da-fA-F]+$") then
+        return nil
+    end
+    return Color3.fromRGB(
+        tonumber(string.sub(cleaned, 1, 2), 16),
+        tonumber(string.sub(cleaned, 3, 4), 16),
+        tonumber(string.sub(cleaned, 5, 6), 16)
+    )
+end
+
 function Northwind:_theme()
     return self.Themes[self.ActiveTheme] or self.Themes.Midnight
+end
+
+function Northwind:_attachTextGradient(instance)
+    local settings = self.TextGradient
+    local gradient = create("UIGradient", {
+        Name = "NorthwindTextGradient",
+        Color = ColorSequence.new(settings.Start, settings.Finish),
+        Rotation = settings.Rotation,
+        Enabled = settings.Enabled,
+        Parent = instance,
+    })
+    table.insert(self._textGradients, gradient)
+    return gradient
+end
+
+function Northwind:SetTextGradient(startColor, finishColor, rotation, enabled)
+    local settings = self.TextGradient
+    if typeof(startColor) == "Color3" then
+        settings.Start = startColor
+    end
+    if typeof(finishColor) == "Color3" then
+        settings.Finish = finishColor
+    end
+    if rotation ~= nil then
+        settings.Rotation = tonumber(rotation) or settings.Rotation
+    end
+    if enabled ~= nil then
+        settings.Enabled = enabled == true
+    end
+
+    for index = #self._textGradients, 1, -1 do
+        local gradient = self._textGradients[index]
+        if not gradient or not gradient.Parent then
+            table.remove(self._textGradients, index)
+        else
+            gradient.Enabled = settings.Enabled
+            gradient.Color = ColorSequence.new(settings.Start, settings.Finish)
+            gradient.Rotation = settings.Rotation
+            gradient.Offset = Vector2.new(-0.08, 0)
+            tween(gradient, 0.22, { Offset = Vector2.new(0, 0) })
+        end
+    end
 end
 
 function Northwind:_bind(instance, property, token)
@@ -448,6 +519,12 @@ function Northwind:GetConfigData()
         version = self.Version,
         theme = self.ActiveTheme,
         palette = palette,
+        textGradient = {
+            enabled = self.TextGradient.Enabled,
+            start = colorToTable(self.TextGradient.Start),
+            finish = colorToTable(self.TextGradient.Finish),
+            rotation = self.TextGradient.Rotation,
+        },
         values = values,
     }
 end
@@ -472,6 +549,14 @@ function Northwind:ImportConfig(data)
             palette[token] = tableToColor(color)
         end
         self:SetTheme(palette)
+    end
+    if data.textGradient then
+        self:SetTextGradient(
+            tableToColor(data.textGradient.start or {}),
+            tableToColor(data.textGradient.finish or {}),
+            data.textGradient.rotation,
+            data.textGradient.enabled
+        )
     end
     for flag, value in pairs(data.values or {}) do
         local option = self.Options[flag]
@@ -651,7 +736,7 @@ function Northwind:CreateWindow(config)
         Parent = screen,
     })
     self:_bind(main, "BackgroundColor3", "Background")
-    round(main, 15)
+    round(main, config.CornerRadius or 17)
     local mainStroke = stroke(main, palette.Border, 0.42)
     self:_bind(mainStroke, "Color", "Border")
 
@@ -700,6 +785,17 @@ function Northwind:CreateWindow(config)
         Parent = brandMark,
     })
     self:_bind(brandLetter, "TextColor3", "Text")
+    if config.Logo then
+        brandLetter.Visible = false
+        create("ImageLabel", {
+            Position = UDim2.fromOffset(3, 3),
+            Size = UDim2.new(1, -6, 1, -6),
+            BackgroundTransparency = 1,
+            Image = config.Logo,
+            ScaleType = Enum.ScaleType.Fit,
+            Parent = brandMark,
+        })
+    end
 
     local brand = create("TextLabel", {
         Position = UDim2.fromOffset(52, 11),
@@ -797,7 +893,7 @@ function Northwind:CreateWindow(config)
     })
     self:_bind(pageSubtitle, "TextColor3", "Muted")
 
-    local primarySubtab = create("TextLabel", {
+    local primarySubtab = create("TextButton", {
         Position = UDim2.fromOffset(24, 62),
         Size = UDim2.fromOffset(58, 22),
         BackgroundTransparency = 1,
@@ -806,10 +902,12 @@ function Northwind:CreateWindow(config)
         Font = Enum.Font.GothamMedium,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = false,
         Parent = content,
     })
     self:_bind(primarySubtab, "TextColor3", "Text")
-    local secondarySubtab = create("TextLabel", {
+    self:_attachTextGradient(primarySubtab)
+    local secondarySubtab = create("TextButton", {
         Position = UDim2.fromOffset(100, 62),
         Size = UDim2.fromOffset(42, 22),
         BackgroundTransparency = 1,
@@ -818,9 +916,12 @@ function Northwind:CreateWindow(config)
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = false,
+        Visible = false,
         Parent = content,
     })
     self:_bind(secondarySubtab, "TextColor3", "Muted")
+    self:_attachTextGradient(secondarySubtab)
 
     local activeSubtab = create("Frame", {
         Position = UDim2.fromOffset(24, 88),
@@ -860,8 +961,12 @@ function Northwind:CreateWindow(config)
         TitleLabel = pageTitle,
         SubtitleLabel = pageSubtitle,
         SubtabLabel = primarySubtab,
+        TypeSubtabButton = secondarySubtab,
+        HeaderUnderline = activeSubtab,
         Tabs = {},
         Panels = {},
+        Logo = config.Logo,
+        PanelsFollowMenuVisibility = config.PanelsFollowMenuVisibility ~= false,
         Visible = true,
         ToggleKey = config.ToggleKey or Enum.KeyCode.RightShift,
         _activeTab = nil,
@@ -883,6 +988,13 @@ function Northwind:CreateWindow(config)
             window:Toggle()
         end
     end))
+
+    primarySubtab.MouseButton1Click:Connect(function()
+        window:SetHeaderSubtab("Settings")
+    end)
+    secondarySubtab.MouseButton1Click:Connect(function()
+        window:SetHeaderSubtab("Type")
+    end)
 
     if config.Settings ~= false then
         window:_createSettingsTab()
@@ -918,8 +1030,37 @@ function Window:SetVisible(visible, instant)
         end
     end
     for _, panel in ipairs(self.Panels) do
-        panel.Frame.Visible = visible
+        if panel.FollowMenuVisibility then
+            panel.Frame.Visible = visible
+        end
     end
+end
+
+function Window:SetPanelsFollowMenuVisibility(follow)
+    self.PanelsFollowMenuVisibility = follow == true
+    for _, panel in ipairs(self.Panels) do
+        panel:SetFollowMenuVisibility(self.PanelsFollowMenuVisibility)
+    end
+end
+
+function Window:SetHeaderSubtab(name)
+    if not self.SettingsTab or self._activeTab ~= self.SettingsTab then
+        return
+    end
+    local showType = name == "Type" and self.SettingsTab.TypePage ~= nil
+    self.SettingsTab.Page.Visible = not showType
+    self.SettingsTab.TypePage.Page.Visible = showType
+    tween(self.SubtabLabel, 0.16, {
+        TextColor3 = showType and self.Library:_theme().Muted or self.Library:_theme().Text,
+    })
+    tween(self.TypeSubtabButton, 0.16, {
+        TextColor3 = showType and self.Library:_theme().Text or self.Library:_theme().Muted,
+    })
+    tween(self.HeaderUnderline, 0.18, {
+        Position = showType and UDim2.fromOffset(100, 88) or UDim2.fromOffset(24, 88),
+        Size = showType and UDim2.fromOffset(30, 2) or UDim2.fromOffset(56, 2),
+    })
+    self._headerSubtab = showType and "Type" or "Settings"
 end
 
 function Window:Toggle()
@@ -951,6 +1092,10 @@ function Window:SelectTab(tab)
     self.TitleLabel.Text = tab.Name
     self.SubtitleLabel.Text = tab.Description
     self.SubtabLabel.Text = tab.Name
+    self.TypeSubtabButton.Visible = tab.IsSettings == true
+    if self.SettingsTab and self.SettingsTab.TypePage then
+        self.SettingsTab.TypePage.Page.Visible = false
+    end
     for _, item in ipairs(self.Tabs) do
         local active = item == tab
         item.Page.Visible = active
@@ -963,6 +1108,14 @@ function Window:SelectTab(tab)
         })
         setIconColor(item.Icon, active and self.Library:_theme().Text or self.Library:_theme().Muted, 0.16)
         item.Accent.Visible = active
+    end
+    if tab.IsSettings and self.SettingsTab then
+        self:SetHeaderSubtab("Settings")
+    else
+        tween(self.HeaderUnderline, 0.18, {
+            Position = UDim2.fromOffset(24, 88),
+            Size = UDim2.new(0, math.max(30, math.min(72, #tab.Name * 7)), 0, 2),
+        })
     end
 end
 
@@ -1109,6 +1262,73 @@ function Window:AddTab(config)
         self:SelectTab(tab)
     end
     return tab
+end
+
+function Tab:AddSubPage(name)
+    local palette = self.Library:_theme()
+    local page = create("ScrollingFrame", {
+        Name = tostring(name or "SubPage") .. "Page",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = palette.Accent,
+        CanvasSize = UDim2.new(),
+        Visible = false,
+        Parent = self.Window.Pages,
+    })
+    self.Library:_bind(page, "ScrollBarImageColor3", "Accent")
+
+    local columns = create("Frame", {
+        Size = UDim2.new(1, -6, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = page,
+    })
+    local left = create("Frame", {
+        Size = UDim2.new(0.5, -6, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = columns,
+    })
+    local right = create("Frame", {
+        Position = UDim2.new(0.5, 6, 0, 0),
+        Size = UDim2.new(0.5, -6, 0, 0),
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = columns,
+    })
+    local leftLayout = create("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = left,
+    })
+    local rightLayout = create("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = right,
+    })
+    local subPage = setmetatable({
+        Window = self.Window,
+        Library = self.Library,
+        Name = tostring(name or "SubPage"),
+        Page = page,
+        Columns = columns,
+        Left = left,
+        Right = right,
+        LeftLayout = leftLayout,
+        RightLayout = rightLayout,
+        Sections = {},
+        _nextSide = "Left",
+    }, Tab)
+    local function resizeCanvas()
+        local height = math.max(leftLayout.AbsoluteContentSize.Y, rightLayout.AbsoluteContentSize.Y)
+        columns.Size = UDim2.new(1, -6, 0, height)
+        page.CanvasSize = UDim2.fromOffset(0, height + 8)
+    end
+    leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resizeCanvas)
+    rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resizeCanvas)
+    return subPage
 end
 
 function Tab:AddSection(config)
@@ -1928,6 +2148,18 @@ function Window:CreateStatusBar(config)
         Parent = logo,
     })
     self.Library:_bind(logoLetter, "TextColor3", "Text")
+    local logoImage = config.Logo or self.Logo
+    if logoImage then
+        logoLetter.Visible = false
+        create("ImageLabel", {
+            Position = UDim2.fromOffset(2, 2),
+            Size = UDim2.new(1, -4, 1, -4),
+            BackgroundTransparency = 1,
+            Image = logoImage,
+            ScaleType = Enum.ScaleType.Fit,
+            Parent = logo,
+        })
+    end
     local brand = create("TextLabel", {
         Position = UDim2.fromOffset(36, 0),
         Size = UDim2.fromOffset(92, 36),
@@ -1993,7 +2225,17 @@ function Window:CreateStatusBar(config)
         clock.Text = os.date("%H:%M:%S")
     end)
     table.insert(self._connections, connection)
-    local panel = setmetatable({ Frame = frame, Window = self, Rows = {} }, Panel)
+    local followVisibility = config.FollowMenuVisibility
+    if followVisibility == nil then
+        followVisibility = self.PanelsFollowMenuVisibility
+    end
+    local panel = setmetatable({
+        Frame = frame,
+        Window = self,
+        Rows = {},
+        FollowMenuVisibility = followVisibility,
+    }, Panel)
+    frame.Visible = followVisibility and self.Visible or true
     table.insert(self.Panels, panel)
     return panel
 end
@@ -2053,10 +2295,29 @@ function Window:CreatePanel(config)
         Window = self,
         Layout = layout,
         Rows = {},
+        FollowMenuVisibility = config.FollowMenuVisibility == nil
+            and self.PanelsFollowMenuVisibility
+            or config.FollowMenuVisibility == true,
         _nextOrder = 2,
     }, Panel)
+    frame.Visible = panel.FollowMenuVisibility and self.Visible or true
     table.insert(self.Panels, panel)
     return panel
+end
+
+function Panel:SetFollowMenuVisibility(follow)
+    self.FollowMenuVisibility = follow == true
+    if self.FollowMenuVisibility then
+        self.Frame.Visible = self.Window.Visible
+    else
+        self.Frame.Visible = true
+    end
+    return self
+end
+
+function Panel:SetVisible(visible)
+    self.Frame.Visible = visible == true
+    return self
 end
 
 function Panel:AddValue(name, initial)
@@ -2162,11 +2423,12 @@ end
 function Window:_createSettingsTab()
     local settings = self:AddTab({
         Name = "Settings",
-        Description = "Window, theme, keybinds, and configs",
+        Description = "Window, panels, theme, type, and configs",
         Icon = "settings",
         LayoutOrder = 999,
         IsSettings = true,
     })
+    self.SettingsTab = settings
     local windowSection = settings:AddSection({
         Name = "Window",
         Description = "Show, hide, and unload",
@@ -2186,6 +2448,21 @@ function Window:_createSettingsTab()
             self:Destroy()
         end,
     })
+
+    local panelSection = settings:AddSection({
+        Name = "Detached panels",
+        Description = "Visibility when the menu closes",
+        Icon = "activity",
+        Side = "Right",
+    })
+    panelSection:AddToggle("Northwind_KeepPanelsVisible", {
+        Text = "Keep panels visible",
+        Default = not self.PanelsFollowMenuVisibility,
+        Callback = function(value)
+            self:SetPanelsFollowMenuVisibility(not value)
+        end,
+    })
+    panelSection:AddLabel("When enabled, FPS and data panels remain on-screen while the main interface is hidden.")
 
     local themeSection = settings:AddSection({
         Name = "Theme",
@@ -2246,7 +2523,70 @@ function Window:_createSettingsTab()
     })
     configSection:AddLabel("Configs persist when a storage provider is attached. Without one, they last for the current session.")
 
-    self.SettingsTab = settings
+    local typePage = settings:AddSubPage("Type")
+    settings.TypePage = typePage
+    local gradientSection = typePage:AddSection({
+        Name = "Text gradient",
+        Description = "Live typography colors",
+        Icon = "palette",
+        Side = "Left",
+    })
+    gradientSection:AddToggle("Northwind_TextGradientEnabled", {
+        Text = "Enable gradient text",
+        Default = self.Library.TextGradient.Enabled,
+        Callback = function(value)
+            self.Library:SetTextGradient(nil, nil, nil, value)
+        end,
+    })
+    local startInput = gradientSection:AddInput("Northwind_TextGradientStart", {
+        Text = "Start color",
+        Default = colorToHex(self.Library.TextGradient.Start),
+        Placeholder = "#F5F7FF",
+        Callback = function(value)
+            local color = hexToColor(value)
+            if color then
+                self.Library:SetTextGradient(color)
+            end
+        end,
+    })
+    local finishInput = gradientSection:AddInput("Northwind_TextGradientFinish", {
+        Text = "End color",
+        Default = colorToHex(self.Library.TextGradient.Finish),
+        Placeholder = "#A8B0FF",
+        Callback = function(value)
+            local color = hexToColor(value)
+            if color then
+                self.Library:SetTextGradient(nil, color)
+            end
+        end,
+    })
+    local directionOption = gradientSection:AddDropdown("Northwind_TextGradientDirection", {
+        Text = "Direction",
+        Values = { "Horizontal", "Diagonal", "Vertical" },
+        Default = "Diagonal",
+        Callback = function(value)
+            local rotations = { Horizontal = 0, Diagonal = 18, Vertical = 90 }
+            self.Library:SetTextGradient(nil, nil, rotations[value] or 18)
+        end,
+    })
+    startInput.Save = false
+    finishInput.Save = false
+    directionOption.Save = false
+
+    local previewSection = typePage:AddSection({
+        Name = "Preview",
+        Description = "Updates instantly",
+        Icon = "eye",
+        Side = "Right",
+    })
+    previewSection:AddLabel("Northwind UI")
+    previewSection:AddDivider("Smooth gradient")
+    previewSection:AddLabel("Titles, labels, panel data, and navigation text use the selected gradient. Input and button backgrounds stay clean and readable.")
+
+    self.TypeSubtabButton.Visible = self._activeTab == settings
+    if self._activeTab == settings then
+        self:SetHeaderSubtab("Settings")
+    end
     return settings
 end
 
