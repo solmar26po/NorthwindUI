@@ -1,6 +1,6 @@
 # Northwind UI
 
-Northwind UI is an original Roblox/Luau interface library with a dark dashboard design, smooth color transitions, detachable telemetry panels, and concise reusable controls.
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, smooth color transitions, crisp code-drawn vector icons, detachable telemetry panels, and concise reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -37,12 +37,13 @@ local Window = Library:CreateWindow({
     Subtitle = "My own Northwind interface",
     ToggleKey = Enum.KeyCode.RightShift,
     Settings = true,
+    Transparency = 0.06,
 })
 
 local Main = Window:AddTab({
     Name = "Main",
     Description = "Main controls",
-    Icon = "◆",
+    Icon = "home",
 })
 
 local Section = Main:AddSection({
@@ -95,6 +96,8 @@ Section:AddKeybind("MyKey", {
 ```
 
 Values are also available through `Library.Flags`, and control objects expose `GetValue()`, `SetValue(value)`, and `OnChanged(callback)`.
+
+Icons use Roblox UI primitives rather than Unicode glyphs, so they do not render as missing-glyph squares. Built-in names include `home`, `eye`, `sliders`, `settings`, `window`, `palette`, `save`, `keyboard`, `clock`, `target`, `activity`, and `sparkles`. A custom `rbxassetid://...` image can also be supplied through `Icon`.
 
 ## Detached panels
 
