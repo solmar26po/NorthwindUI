@@ -10,6 +10,8 @@ It contains UI components only. The included example uses harmless test callback
 NorthwindUI/
 ├── Library.lua
 ├── example.lua
+├── assets/
+│   └── NorthwindLogo.png
 └── addons/
     ├── SaveManager.lua
     └── ThemeManager.lua
@@ -38,6 +40,9 @@ local Window = Library:CreateWindow({
     ToggleKey = Enum.KeyCode.RightShift,
     Settings = true,
     Transparency = 0.06,
+    CornerRadius = 17,
+    PanelsFollowMenuVisibility = false,
+    Logo = "rbxassetid://1234567890",
 })
 
 local Main = Window:AddTab({
@@ -107,6 +112,7 @@ Window:CreateStatusBar({ Title = "My Menu" })
 local Panel = Window:CreatePanel({
     Title = "Session",
     Position = UDim2.fromOffset(16, 80),
+    FollowMenuVisibility = false,
 })
 
 local Time = Panel:AddValue("Uptime", "00:00")
@@ -116,6 +122,21 @@ Time:Set("04:32")
 Progress:Set(70)
 ```
 
+Set `FollowMenuVisibility = true` on any status bar or detached panel that should close with the main menu. Set it to `false` to keep that panel visible. The generated Settings page also includes a **Keep panels visible** switch that updates every detached panel at once.
+
+## Logo
+
+Upload `assets/NorthwindLogo.png` to Roblox as an image asset, copy its asset ID, and pass it to the window:
+
+```lua
+local Window = Library:CreateWindow({
+    Title = "Northwind",
+    Logo = "rbxassetid://YOUR_IMAGE_ASSET_ID",
+})
+```
+
+The same logo is inherited by the detached status bar. You can override it with `Logo` inside `CreateStatusBar`.
+
 ## Themes and configs
 
 The Settings tab is generated automatically unless `Settings = false` is passed to `CreateWindow`. It includes:
@@ -123,6 +144,8 @@ The Settings tab is generated automatically unless `Settings = false` is passed 
 - Midnight, Obsidian, and Nord theme presets
 - Six accent colors with live transitions
 - Toggle-interface keybind editing
+- A functional **Type** page with editable start/end hex colors and gradient direction
+- Detached-panel visibility behavior
 - Config save, load, and delete controls
 
 Configs use memory storage by default. To persist them safely in an experience you own, attach a provider that sends config data to a server-owned DataStore. A provider implements `Save`, `Load`, `Delete`, and optionally `List`.
