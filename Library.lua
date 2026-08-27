@@ -13,7 +13,7 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 local Northwind = {
-    Version = "1.0.0",
+    Version = "1.1.0",
     Flags = {},
     Options = {},
     Windows = {},
@@ -21,15 +21,15 @@ local Northwind = {
     ActiveTheme = "Midnight",
     Themes = {
         Midnight = {
-            Background = Color3.fromRGB(12, 14, 27),
-            Sidebar = Color3.fromRGB(15, 17, 32),
-            Surface = Color3.fromRGB(24, 28, 45),
-            SurfaceAlt = Color3.fromRGB(35, 40, 65),
-            Border = Color3.fromRGB(48, 54, 82),
-            Text = Color3.fromRGB(237, 239, 250),
-            Muted = Color3.fromRGB(145, 151, 181),
+            Background = Color3.fromRGB(13, 15, 28),
+            Sidebar = Color3.fromRGB(16, 18, 31),
+            Surface = Color3.fromRGB(25, 29, 47),
+            SurfaceAlt = Color3.fromRGB(39, 44, 70),
+            Border = Color3.fromRGB(49, 55, 82),
+            Text = Color3.fromRGB(241, 243, 250),
+            Muted = Color3.fromRGB(151, 158, 187),
             Accent = Color3.fromRGB(124, 138, 255),
-            AccentSoft = Color3.fromRGB(86, 91, 174),
+            AccentSoft = Color3.fromRGB(83, 89, 174),
             Success = Color3.fromRGB(102, 214, 153),
             Danger = Color3.fromRGB(255, 103, 131),
         },
@@ -113,6 +113,224 @@ local function tween(instance, duration, properties, style, direction)
     return animation
 end
 
+-- Icons are drawn with Roblox UI primitives instead of Unicode characters.
+-- This keeps them sharp on every platform and avoids missing-glyph squares.
+local ICON_ALIASES = {
+    ["settings"] = "settings", ["gear"] = "settings",
+    ["window"] = "window", ["panel"] = "window",
+    ["theme"] = "palette", ["palette"] = "palette",
+    ["configs"] = "save", ["config"] = "save", ["save"] = "save",
+    ["dashboard"] = "home", ["home"] = "home", ["farm"] = "home",
+    ["visuals"] = "eye", ["appearance"] = "eye", ["eye"] = "eye",
+    ["controls"] = "sliders", ["sliders"] = "sliders", ["inputs"] = "sliders",
+    ["keybinds"] = "keyboard", ["keyboard"] = "keyboard",
+    ["session"] = "clock", ["clock"] = "clock", ["time"] = "clock",
+    ["metrics"] = "activity", ["activity"] = "activity",
+    ["targets"] = "target", ["target"] = "target",
+    ["actions"] = "sparkles", ["sparkles"] = "sparkles", ["preview"] = "sparkles",
+    ["search"] = "search", ["chevron"] = "chevron-down", ["chevron-down"] = "chevron-down",
+    ["toggle"] = "toggle", ["info"] = "info",
+}
+
+local LEGACY_ICON_ALIASES = {
+    ["◆"] = "sparkles", ["✦"] = "sparkles", ["◇"] = "sliders",
+    ["◉"] = "activity", ["◈"] = "target", ["⌂"] = "home",
+    ["⌁"] = "sliders", ["⌨"] = "keyboard", ["◷"] = "clock",
+    ["⚙"] = "settings", ["▣"] = "window", ["✿"] = "palette",
+    ["▤"] = "save", ["☼"] = "palette",
+}
+
+local function resolveIconName(value, fallback)
+    if type(value) ~= "string" or value == "" then
+        return fallback or "sparkles"
+    end
+    if string.find(value, "rbxasset", 1, true) then
+        return value
+    end
+    return ICON_ALIASES[string.lower(value)] or LEGACY_ICON_ALIASES[value] or fallback or "sparkles"
+end
+
+local function makeIcon(parent, iconName, position, size, colorToken)
+    local token = colorToken or "Muted"
+    local palette = Northwind:_theme()
+    local container = create("Frame", {
+        Name = "Icon",
+        Position = position or UDim2.new(),
+        Size = size or UDim2.fromOffset(18, 18),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+    local icon = { Frame = container, Parts = {} }
+    local resolved = resolveIconName(iconName, "sparkles")
+
+    local function track(instance, property)
+        local propertyName = property or "BackgroundColor3"
+        Northwind:_bind(instance, propertyName, token)
+        table.insert(icon.Parts, { Instance = instance, Property = propertyName })
+        return instance
+    end
+
+    local function line(x1, y1, x2, y2, thickness)
+        local dx, dy = x2 - x1, y2 - y1
+        local length = math.sqrt(dx * dx + dy * dy)
+        local part = create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale((x1 + x2) * 0.5, (y1 + y2) * 0.5),
+            Size = UDim2.new(length, 0, 0, thickness or 2),
+            Rotation = math.deg(math.atan2(dy, dx)),
+            BackgroundColor3 = palette[token],
+            BorderSizePixel = 0,
+            Parent = container,
+        })
+        round(part, 2)
+        return track(part)
+    end
+
+    local function circle(x, y, diameter, thickness, filled)
+        local part = create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(x, y),
+            Size = UDim2.fromScale(diameter, diameter),
+            BackgroundColor3 = palette[token],
+            BackgroundTransparency = filled and 0 or 1,
+            BorderSizePixel = 0,
+            Parent = container,
+        })
+        round(part, 999)
+        if filled then
+            track(part)
+        else
+            local outline = stroke(part, palette[token], 0, thickness or 1.5)
+            track(outline, "Color")
+        end
+        return part
+    end
+
+    local function outlineRect(x, y, width, height, radius)
+        local part = create("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(x, y),
+            Size = UDim2.fromScale(width, height),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Parent = container,
+        })
+        round(part, radius or 3)
+        local outline = stroke(part, palette[token], 0, 1.5)
+        track(outline, "Color")
+        return part
+    end
+
+    if string.find(resolved, "rbxasset", 1, true) then
+        local image = create("ImageLabel", {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            Image = resolved,
+            ImageColor3 = palette[token],
+            ScaleType = Enum.ScaleType.Fit,
+            Parent = container,
+        })
+        track(image, "ImageColor3")
+    elseif resolved == "search" then
+        circle(0.43, 0.43, 0.55, 1.6)
+        line(0.63, 0.63, 0.86, 0.86, 2)
+    elseif resolved == "home" then
+        line(0.13, 0.47, 0.5, 0.15, 2)
+        line(0.5, 0.15, 0.87, 0.47, 2)
+        line(0.23, 0.4, 0.23, 0.84, 2)
+        line(0.77, 0.4, 0.77, 0.84, 2)
+        line(0.23, 0.84, 0.77, 0.84, 2)
+        line(0.48, 0.84, 0.48, 0.62, 2)
+    elseif resolved == "eye" then
+        line(0.08, 0.5, 0.32, 0.27, 1.8)
+        line(0.32, 0.27, 0.68, 0.27, 1.8)
+        line(0.68, 0.27, 0.92, 0.5, 1.8)
+        line(0.92, 0.5, 0.68, 0.73, 1.8)
+        line(0.68, 0.73, 0.32, 0.73, 1.8)
+        line(0.32, 0.73, 0.08, 0.5, 1.8)
+        circle(0.5, 0.5, 0.24, 1.4)
+    elseif resolved == "sliders" then
+        line(0.14, 0.26, 0.86, 0.26, 1.8)
+        line(0.14, 0.5, 0.86, 0.5, 1.8)
+        line(0.14, 0.74, 0.86, 0.74, 1.8)
+        circle(0.36, 0.26, 0.16, 1, true)
+        circle(0.67, 0.5, 0.16, 1, true)
+        circle(0.46, 0.74, 0.16, 1, true)
+    elseif resolved == "settings" then
+        circle(0.5, 0.5, 0.34, 1.7)
+        circle(0.5, 0.5, 0.10, 1, true)
+        line(0.5, 0.07, 0.5, 0.26, 2)
+        line(0.5, 0.74, 0.5, 0.93, 2)
+        line(0.07, 0.5, 0.26, 0.5, 2)
+        line(0.74, 0.5, 0.93, 0.5, 2)
+        line(0.2, 0.2, 0.33, 0.33, 2)
+        line(0.67, 0.67, 0.8, 0.8, 2)
+        line(0.8, 0.2, 0.67, 0.33, 2)
+        line(0.33, 0.67, 0.2, 0.8, 2)
+    elseif resolved == "window" then
+        outlineRect(0.5, 0.5, 0.78, 0.7, 3)
+        line(0.12, 0.34, 0.88, 0.34, 1.5)
+        circle(0.23, 0.22, 0.08, 1, true)
+        circle(0.38, 0.22, 0.08, 1, true)
+    elseif resolved == "palette" then
+        circle(0.48, 0.5, 0.72, 1.6)
+        circle(0.35, 0.32, 0.10, 1, true)
+        circle(0.58, 0.28, 0.10, 1, true)
+        circle(0.68, 0.5, 0.10, 1, true)
+        circle(0.38, 0.63, 0.10, 1, true)
+    elseif resolved == "save" then
+        outlineRect(0.5, 0.5, 0.72, 0.76, 3)
+        outlineRect(0.5, 0.29, 0.4, 0.22, 2)
+        outlineRect(0.5, 0.68, 0.42, 0.25, 2)
+    elseif resolved == "keyboard" then
+        outlineRect(0.5, 0.5, 0.84, 0.58, 3)
+        for rowIndex = 0, 1 do
+            for columnIndex = 0, 3 do
+                circle(0.26 + columnIndex * 0.16, 0.39 + rowIndex * 0.22, 0.07, 1, true)
+            end
+        end
+        line(0.31, 0.72, 0.69, 0.72, 1.7)
+    elseif resolved == "clock" then
+        circle(0.5, 0.5, 0.76, 1.6)
+        line(0.5, 0.5, 0.5, 0.27, 1.8)
+        line(0.5, 0.5, 0.68, 0.61, 1.8)
+    elseif resolved == "target" then
+        circle(0.5, 0.5, 0.76, 1.5)
+        circle(0.5, 0.5, 0.42, 1.5)
+        circle(0.5, 0.5, 0.10, 1, true)
+    elseif resolved == "activity" then
+        line(0.08, 0.56, 0.28, 0.56, 2)
+        line(0.28, 0.56, 0.4, 0.24, 2)
+        line(0.4, 0.24, 0.58, 0.78, 2)
+        line(0.58, 0.78, 0.71, 0.43, 2)
+        line(0.71, 0.43, 0.92, 0.43, 2)
+    elseif resolved == "chevron-down" then
+        line(0.2, 0.36, 0.5, 0.66, 1.8)
+        line(0.5, 0.66, 0.8, 0.36, 1.8)
+    elseif resolved == "info" then
+        circle(0.5, 0.5, 0.76, 1.5)
+        line(0.5, 0.43, 0.5, 0.72, 2)
+        circle(0.5, 0.27, 0.10, 1, true)
+    else
+        line(0.5, 0.08, 0.5, 0.92, 2)
+        line(0.08, 0.5, 0.92, 0.5, 2)
+        line(0.22, 0.22, 0.78, 0.78, 1.6)
+        line(0.78, 0.22, 0.22, 0.78, 1.6)
+    end
+    return icon
+end
+
+local function setIconColor(icon, color, duration)
+    if not icon then
+        return
+    end
+    for _, part in ipairs(icon.Parts) do
+        if part.Instance and part.Instance.Parent then
+            tween(part.Instance, duration or 0.16, { [part.Property] = color })
+        end
+    end
+end
+
 local function safeCallback(callback, ...)
     if type(callback) ~= "function" then
         return
@@ -185,6 +403,11 @@ function Northwind:SetTheme(theme)
         for _, option in pairs(self.Options) do
             if option.SetValue then
                 option:SetValue(option.Value, true)
+            end
+        end
+        for _, window in ipairs(self.Windows) do
+            if window._activeTab and window.Main and window.Main.Parent then
+                window:SelectTab(window._activeTab)
             end
         end
     end)
@@ -422,13 +645,14 @@ function Northwind:CreateWindow(config)
         Position = config.Position or UDim2.fromScale(0.57, 0.5),
         Size = config.Size or UDim2.fromOffset(900, 580),
         BackgroundColor3 = palette.Background,
+        BackgroundTransparency = config.Transparency == nil and 0.06 or config.Transparency,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = screen,
     })
     self:_bind(main, "BackgroundColor3", "Background")
-    round(main, 14)
-    local mainStroke = stroke(main, palette.Border, 0.25)
+    round(main, 15)
+    local mainStroke = stroke(main, palette.Border, 0.42)
     self:_bind(mainStroke, "Color", "Border")
 
     local scale = create("UIScale", { Scale = 0.96, Parent = main })
@@ -438,6 +662,7 @@ function Northwind:CreateWindow(config)
         Name = "Sidebar",
         Size = UDim2.new(0, 230, 1, 0),
         BackgroundColor3 = palette.Sidebar,
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         Parent = main,
     })
@@ -453,33 +678,60 @@ function Northwind:CreateWindow(config)
     })
     self:_bind(sidebarLine, "BackgroundColor3", "Border")
 
-    local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(18, 15),
-        Size = UDim2.new(1, -36, 0, 42),
+    local brandMark = create("Frame", {
+        Position = UDim2.fromOffset(18, 18),
+        Size = UDim2.fromOffset(25, 25),
+        BackgroundColor3 = palette.Accent,
+        BackgroundTransparency = 0.84,
+        BorderSizePixel = 0,
+        Parent = sidebar,
+    })
+    self:_bind(brandMark, "BackgroundColor3", "Accent")
+    round(brandMark, 7)
+    local brandMarkStroke = stroke(brandMark, palette.Accent, 0.18, 1.2)
+    self:_bind(brandMarkStroke, "Color", "Accent")
+    local brandLetter = create("TextLabel", {
+        Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Text = "NW  " .. (config.Title or "Northwind"),
+        Text = "N",
         TextColor3 = palette.Text,
         Font = Enum.Font.GothamBold,
-        TextSize = 20,
+        TextSize = 15,
+        Parent = brandMark,
+    })
+    self:_bind(brandLetter, "TextColor3", "Text")
+
+    local brand = create("TextLabel", {
+        Position = UDim2.fromOffset(52, 11),
+        Size = UDim2.new(1, -66, 0, 42),
+        BackgroundTransparency = 1,
+        Text = config.Title or "Northwind",
+        TextColor3 = palette.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 19,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = sidebar,
     })
     self:_bind(brand, "TextColor3", "Text")
 
-    local accentMark = create("Frame", {
-        Position = UDim2.fromOffset(18, 54),
-        Size = UDim2.fromOffset(34, 3),
-        BackgroundColor3 = palette.Accent,
-        BorderSizePixel = 0,
-        Parent = sidebar,
-    })
-    self:_bind(accentMark, "BackgroundColor3", "Accent")
-    round(accentMark, 2)
-
-    local search = create("TextBox", {
+    local searchShell = create("Frame", {
         Position = UDim2.fromOffset(14, 72),
         Size = UDim2.new(1, -28, 0, 34),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.08,
+        BorderSizePixel = 0,
+        Parent = sidebar,
+    })
+    self:_bind(searchShell, "BackgroundColor3", "SurfaceAlt")
+    round(searchShell, 8)
+    local searchStroke = stroke(searchShell, palette.Border, 0.72)
+    self:_bind(searchStroke, "Color", "Border")
+    makeIcon(searchShell, "search", UDim2.fromOffset(11, 10), UDim2.fromOffset(14, 14), "Muted")
+
+    local search = create("TextBox", {
+        Position = UDim2.fromOffset(31, 0),
+        Size = UDim2.new(1, -37, 1, 0),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         PlaceholderText = "  Search the interface...",
         PlaceholderColor3 = palette.Muted,
@@ -489,12 +741,10 @@ function Northwind:CreateWindow(config)
         TextSize = 12,
         ClearTextOnFocus = false,
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = sidebar,
+        Parent = searchShell,
     })
-    self:_bind(search, "BackgroundColor3", "SurfaceAlt")
     self:_bind(search, "TextColor3", "Text")
     self:_bind(search, "PlaceholderColor3", "Muted")
-    round(search, 8)
 
     local tabList = create("ScrollingFrame", {
         Position = UDim2.fromOffset(10, 122),
@@ -547,8 +797,43 @@ function Northwind:CreateWindow(config)
     })
     self:_bind(pageSubtitle, "TextColor3", "Muted")
 
+    local primarySubtab = create("TextLabel", {
+        Position = UDim2.fromOffset(24, 62),
+        Size = UDim2.fromOffset(58, 22),
+        BackgroundTransparency = 1,
+        Text = "Settings",
+        TextColor3 = palette.Text,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = content,
+    })
+    self:_bind(primarySubtab, "TextColor3", "Text")
+    local secondarySubtab = create("TextLabel", {
+        Position = UDim2.fromOffset(100, 62),
+        Size = UDim2.fromOffset(42, 22),
+        BackgroundTransparency = 1,
+        Text = "Type",
+        TextColor3 = palette.Muted,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = content,
+    })
+    self:_bind(secondarySubtab, "TextColor3", "Muted")
+
+    local activeSubtab = create("Frame", {
+        Position = UDim2.fromOffset(24, 88),
+        Size = UDim2.fromOffset(56, 2),
+        BackgroundColor3 = palette.Accent,
+        BorderSizePixel = 0,
+        Parent = content,
+    })
+    self:_bind(activeSubtab, "BackgroundColor3", "Accent")
+    round(activeSubtab, 1)
+
     local titleLine = create("Frame", {
-        Position = UDim2.fromOffset(24, 70),
+        Position = UDim2.fromOffset(24, 89),
         Size = UDim2.new(1, -48, 0, 1),
         BackgroundColor3 = palette.Border,
         BorderSizePixel = 0,
@@ -557,8 +842,8 @@ function Northwind:CreateWindow(config)
     self:_bind(titleLine, "BackgroundColor3", "Border")
 
     local pages = create("Frame", {
-        Position = UDim2.fromOffset(18, 82),
-        Size = UDim2.new(1, -36, 1, -96),
+        Position = UDim2.fromOffset(18, 101),
+        Size = UDim2.new(1, -36, 1, -115),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
         Parent = content,
@@ -574,6 +859,7 @@ function Northwind:CreateWindow(config)
         Pages = pages,
         TitleLabel = pageTitle,
         SubtitleLabel = pageSubtitle,
+        SubtabLabel = primarySubtab,
         Tabs = {},
         Panels = {},
         Visible = true,
@@ -664,6 +950,7 @@ function Window:SelectTab(tab)
     self._activeTab = tab
     self.TitleLabel.Text = tab.Name
     self.SubtitleLabel.Text = tab.Description
+    self.SubtabLabel.Text = tab.Name
     for _, item in ipairs(self.Tabs) do
         local active = item == tab
         item.Page.Visible = active
@@ -674,6 +961,7 @@ function Window:SelectTab(tab)
         tween(item.ButtonText, 0.16, {
             TextColor3 = active and self.Library:_theme().Text or self.Library:_theme().Muted,
         })
+        setIconColor(item.Icon, active and self.Library:_theme().Text or self.Library:_theme().Muted, 0.16)
         item.Accent.Visible = active
     end
 end
@@ -698,6 +986,8 @@ function Window:AddTab(config)
         Parent = self.TabList,
     })
     round(button, 8)
+    local buttonStroke = stroke(button, palette.Border, 1)
+    self.Library:_bind(buttonStroke, "Color", "Border")
 
     local accent = create("Frame", {
         Position = UDim2.fromOffset(0, 8),
@@ -710,17 +1000,7 @@ function Window:AddTab(config)
     self.Library:_bind(accent, "BackgroundColor3", "Accent")
     round(accent, 2)
 
-    local icon = create("TextLabel", {
-        Position = UDim2.fromOffset(12, 0),
-        Size = UDim2.fromOffset(24, 38),
-        BackgroundTransparency = 1,
-        Text = config.Icon or "◆",
-        TextColor3 = palette.Muted,
-        Font = Enum.Font.GothamBold,
-        TextSize = 15,
-        Parent = button,
-    })
-    self.Library:_bind(icon, "TextColor3", "Muted")
+    local icon = makeIcon(button, config.Icon or name, UDim2.fromOffset(13, 10), UDim2.fromOffset(18, 18), "Muted")
 
     local buttonText = create("TextLabel", {
         Position = UDim2.fromOffset(42, 0),
@@ -785,6 +1065,7 @@ function Window:AddTab(config)
         Description = config.Description or "Configure " .. string.lower(name),
         Button = button,
         ButtonText = buttonText,
+        Icon = icon,
         Accent = accent,
         Page = page,
         Columns = columns,
@@ -811,12 +1092,16 @@ function Window:AddTab(config)
     end)
     button.MouseEnter:Connect(function()
         if self._activeTab ~= tab then
-            tween(button, 0.15, { BackgroundTransparency = 0.62 })
+            tween(button, 0.18, { BackgroundTransparency = 0.74 })
+            tween(buttonStroke, 0.18, { Transparency = 0.72 })
+            setIconColor(icon, self.Library:_theme().Text, 0.18)
         end
     end)
     button.MouseLeave:Connect(function()
         if self._activeTab ~= tab then
             tween(button, 0.15, { BackgroundTransparency = 1 })
+            tween(buttonStroke, 0.18, { Transparency = 1 })
+            setIconColor(icon, self.Library:_theme().Muted, 0.18)
         end
     end)
 
@@ -840,12 +1125,13 @@ function Tab:AddSection(config)
         Size = UDim2.new(1, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = palette.Surface,
+        BackgroundTransparency = 0.10,
         BorderSizePixel = 0,
         Parent = parent,
     })
     self.Library:_bind(frame, "BackgroundColor3", "Surface")
     round(frame, 11)
-    local frameStroke = stroke(frame, palette.Border, 0.28)
+    local frameStroke = stroke(frame, palette.Border, 0.52)
     self.Library:_bind(frameStroke, "Color", "Border")
     padding(frame, 14, 14, 12, 14)
 
@@ -854,15 +1140,7 @@ function Tab:AddSection(config)
         BackgroundTransparency = 1,
         Parent = frame,
     })
-    create("TextLabel", {
-        Size = UDim2.fromOffset(28, 26),
-        BackgroundTransparency = 1,
-        Text = config.Icon or "✦",
-        TextColor3 = palette.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 18,
-        Parent = header,
-    })
+    makeIcon(header, config.Icon or config.Name, UDim2.fromOffset(3, 4), UDim2.fromOffset(20, 20), "Text")
     local title = create("TextLabel", {
         Position = UDim2.fromOffset(34, 0),
         Size = UDim2.new(1, -34, 0, 22),
@@ -925,13 +1203,16 @@ function Section:_row(height, transparent)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 36),
         BackgroundColor3 = palette.SurfaceAlt,
-        BackgroundTransparency = transparent and 1 or 0,
+        BackgroundTransparency = 0.08,
+        BackgroundTransparency = transparent and 1 or 0.12,
         BorderSizePixel = 0,
         Parent = self.Controls,
     })
     if not transparent then
         self.Library:_bind(row, "BackgroundColor3", "SurfaceAlt")
         round(row, 7)
+        local rowStroke = stroke(row, palette.Border, 0.78)
+        self.Library:_bind(rowStroke, "Color", "Border")
     end
     return row
 end
@@ -1007,12 +1288,14 @@ function Section:AddButton(config, callback)
         Parent = self.Controls,
     })
     round(button, 7)
+    local buttonStroke = stroke(button, palette.Border, 0.68)
+    self.Library:_bind(buttonStroke, "Color", "Border")
     self.Library:_bind(button, "TextColor3", "Text")
     addHover(button, "SurfaceAlt", "AccentSoft")
     button.MouseButton1Click:Connect(function()
-        tween(button, 0.08, { Size = UDim2.new(1, 0, 0, 33) })
+        tween(button, 0.08, { Size = UDim2.new(1, -4, 0, 34), Position = UDim2.fromOffset(2, 1) })
         task.delay(0.08, function()
-            tween(button, 0.12, { Size = UDim2.new(1, 0, 0, 36) })
+            tween(button, 0.14, { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.new() })
         end)
         safeCallback(config.Callback)
     end)
@@ -1044,6 +1327,7 @@ function Section:AddToggle(flag, config)
         Position = UDim2.fromScale(1, 0.5),
         Size = UDim2.fromOffset(43, 22),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.05,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -1051,6 +1335,8 @@ function Section:AddToggle(flag, config)
     })
     self.Library:_bind(track, "BackgroundColor3", "SurfaceAlt")
     round(track, 11)
+    local trackStroke = stroke(track, palette.Border, 0.72)
+    self.Library:_bind(trackStroke, "Color", "Border")
     local knob = create("Frame", {
         AnchorPoint = Vector2.new(0, 0.5),
         Position = UDim2.fromOffset(3, 11),
@@ -1061,6 +1347,8 @@ function Section:AddToggle(flag, config)
     })
     self.Library:_bind(knob, "BackgroundColor3", "Text")
     round(knob, 8)
+    local knobStroke = stroke(knob, palette.Border, 0.72)
+    self.Library:_bind(knobStroke, "Color", "Border")
 
     local option = newOption(flag, config.Default == true, config.Callback)
     function option:SetValue(value, silent)
@@ -1070,6 +1358,9 @@ function Section:AddToggle(flag, config)
         })
         tween(knob, 0.18, {
             Position = self.Value and UDim2.fromOffset(24, 11) or UDim2.fromOffset(3, 11),
+        })
+        tween(knob, 0.18, {
+            BackgroundColor3 = self.Value and Northwind:_theme().Text or Northwind:_theme().Muted,
         })
         self:_emit(silent)
     end
@@ -1120,6 +1411,7 @@ function Section:AddSlider(flag, config)
         Position = UDim2.fromOffset(0, 36),
         Size = UDim2.new(1, 0, 0, 6),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.12,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -1127,6 +1419,8 @@ function Section:AddSlider(flag, config)
     })
     self.Library:_bind(track, "BackgroundColor3", "SurfaceAlt")
     round(track, 3)
+    local sliderStroke = stroke(track, palette.Border, 0.82)
+    self.Library:_bind(sliderStroke, "Color", "Border")
     local fill = create("Frame", {
         Size = UDim2.new(0, 0, 1, 0),
         BackgroundColor3 = palette.Accent,
@@ -1211,6 +1505,7 @@ function Section:AddInput(flag, config)
         Position = UDim2.new(0.42, 0, 0, 3),
         Size = UDim2.new(0.58, 0, 1, -6),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         PlaceholderText = config.Placeholder or "Type here...",
         PlaceholderColor3 = palette.Muted,
@@ -1225,6 +1520,8 @@ function Section:AddInput(flag, config)
     self.Library:_bind(box, "TextColor3", "Text")
     self.Library:_bind(box, "PlaceholderColor3", "Muted")
     round(box, 7)
+    local boxStroke = stroke(box, palette.Border, 0.72)
+    self.Library:_bind(boxStroke, "Color", "Border")
     padding(box, 9, 9, 0, 0)
 
     local option = newOption(flag, tostring(config.Default or ""), config.Callback)
@@ -1234,10 +1531,14 @@ function Section:AddInput(flag, config)
         self:_emit(silent)
     end
     box.FocusLost:Connect(function(enterPressed)
+        tween(boxStroke, 0.16, { Transparency = 0.72, Color = Northwind:_theme().Border })
         option:SetValue(box.Text)
         if enterPressed then
             safeCallback(config.Finished, box.Text)
         end
+    end)
+    box.Focused:Connect(function()
+        tween(boxStroke, 0.16, { Transparency = 0.18, Color = Northwind:_theme().Accent })
     end)
     return option
 end
@@ -1267,6 +1568,7 @@ function Section:AddDropdown(flag, config)
         Position = UDim2.new(0.42, 0, 0, 3),
         Size = UDim2.new(0.58, 0, 0, 36),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -1274,6 +1576,8 @@ function Section:AddDropdown(flag, config)
     })
     self.Library:_bind(button, "BackgroundColor3", "SurfaceAlt")
     round(button, 7)
+    local dropdownStroke = stroke(button, palette.Border, 0.72)
+    self.Library:_bind(dropdownStroke, "Color", "Border")
     local valueText = create("TextLabel", {
         Position = UDim2.fromOffset(9, 0),
         Size = UDim2.new(1, -34, 1, 0),
@@ -1286,22 +1590,19 @@ function Section:AddDropdown(flag, config)
         Parent = button,
     })
     self.Library:_bind(valueText, "TextColor3", "Text")
-    local arrow = create("TextLabel", {
+    local arrowHolder = create("Frame", {
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.fromScale(1, 0),
         Size = UDim2.fromOffset(30, 36),
         BackgroundTransparency = 1,
-        Text = "⌄",
-        TextColor3 = palette.Muted,
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
         Parent = button,
     })
-    self.Library:_bind(arrow, "TextColor3", "Muted")
+    makeIcon(arrowHolder, "chevron-down", UDim2.fromOffset(8, 11), UDim2.fromOffset(14, 14), "Muted")
     local list = create("Frame", {
         Position = UDim2.new(0.42, 0, 0, 43),
         Size = UDim2.new(0.58, 0, 0, 0),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.04,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Visible = false,
@@ -1309,6 +1610,8 @@ function Section:AddDropdown(flag, config)
     })
     self.Library:_bind(list, "BackgroundColor3", "SurfaceAlt")
     round(list, 7)
+    local listStroke = stroke(list, palette.Border, 0.58)
+    self.Library:_bind(listStroke, "Color", "Border")
     local listLayout = create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = list,
@@ -1322,7 +1625,11 @@ function Section:AddDropdown(flag, config)
         local targetHeight = value and math.min(#values * 30, 150) or 0
         tween(list, 0.18, { Size = UDim2.new(0.58, 0, 0, targetHeight) })
         tween(row, 0.18, { Size = UDim2.new(1, 0, 0, value and (48 + targetHeight) or 42) })
-        arrow.Text = value and "⌃" or "⌄"
+        tween(arrowHolder, 0.18, { Rotation = value and 180 or 0 })
+        tween(dropdownStroke, 0.18, {
+            Transparency = value and 0.18 or 0.72,
+            Color = value and Northwind:_theme().Accent or Northwind:_theme().Border,
+        })
         if not value then
             task.delay(0.18, function()
                 if not open then
@@ -1404,6 +1711,7 @@ function Section:AddKeybind(flag, config)
         Position = UDim2.fromScale(1, 0.5),
         Size = UDim2.fromOffset(108, 32),
         BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         Text = "",
         TextColor3 = palette.Text,
@@ -1415,6 +1723,8 @@ function Section:AddKeybind(flag, config)
     self.Library:_bind(button, "BackgroundColor3", "SurfaceAlt")
     self.Library:_bind(button, "TextColor3", "Text")
     round(button, 7)
+    local keyStroke = stroke(button, palette.Border, 0.72)
+    self.Library:_bind(keyStroke, "Color", "Border")
 
     local listening = false
     local option = newOption(flag, config.Default or Enum.KeyCode.Unknown, config.Callback)
@@ -1430,12 +1740,14 @@ function Section:AddKeybind(flag, config)
         listening = true
         button.Text = "Press a key..."
         tween(button, 0.15, { BackgroundColor3 = Northwind:_theme().AccentSoft })
+        tween(keyStroke, 0.15, { Transparency = 0.18, Color = Northwind:_theme().Accent })
     end)
     UserInputService.InputBegan:Connect(function(input, processed)
         if listening and input.KeyCode ~= Enum.KeyCode.Unknown then
             listening = false
             option:SetValue(input.KeyCode)
             tween(button, 0.15, { BackgroundColor3 = Northwind:_theme().SurfaceAlt })
+            tween(keyStroke, 0.15, { Transparency = 0.72, Color = Northwind:_theme().Border })
         elseif not processed and input.KeyCode == option.Value then
             safeCallback(config.Pressed, option.Value)
         end
@@ -1586,19 +1898,41 @@ function Window:CreateStatusBar(config)
         Position = config.Position or UDim2.fromOffset(16, 28),
         Size = config.Size or UDim2.fromOffset(276, 36),
         BackgroundColor3 = palette.Surface,
-        BackgroundTransparency = 0.08,
+        BackgroundTransparency = 0.16,
         BorderSizePixel = 0,
         Parent = self.ScreenGui,
     })
     self.Library:_bind(frame, "BackgroundColor3", "Surface")
-    round(frame, 8)
-    local frameStroke = stroke(frame, palette.Border, 0.3)
+    round(frame, 9)
+    local frameStroke = stroke(frame, palette.Border, 0.42)
     self.Library:_bind(frameStroke, "Color", "Border")
-    local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(12, 0),
-        Size = UDim2.fromOffset(116, 36),
+    local logo = create("Frame", {
+        Position = UDim2.fromOffset(10, 8),
+        Size = UDim2.fromOffset(20, 20),
+        BackgroundColor3 = palette.Accent,
+        BackgroundTransparency = 0.82,
+        BorderSizePixel = 0,
+        Parent = frame,
+    })
+    self.Library:_bind(logo, "BackgroundColor3", "Accent")
+    round(logo, 6)
+    local logoStroke = stroke(logo, palette.Accent, 0.16, 1.2)
+    self.Library:_bind(logoStroke, "Color", "Accent")
+    local logoLetter = create("TextLabel", {
+        Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Text = "NW  " .. (config.Title or "Northwind"),
+        Text = "N",
+        TextColor3 = palette.Text,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        Parent = logo,
+    })
+    self.Library:_bind(logoLetter, "TextColor3", "Text")
+    local brand = create("TextLabel", {
+        Position = UDim2.fromOffset(36, 0),
+        Size = UDim2.fromOffset(92, 36),
+        BackgroundTransparency = 1,
+        Text = config.Title or "Northwind",
         TextColor3 = palette.Accent,
         Font = Enum.Font.GothamBold,
         TextSize = 12,
@@ -1617,6 +1951,14 @@ function Window:CreateStatusBar(config)
         Parent = frame,
     })
     self.Library:_bind(fps, "TextColor3", "Text")
+    local separatorA = create("Frame", {
+        Position = UDim2.fromOffset(128, 10),
+        Size = UDim2.fromOffset(1, 16),
+        BackgroundColor3 = palette.Border,
+        BorderSizePixel = 0,
+        Parent = frame,
+    })
+    self.Library:_bind(separatorA, "BackgroundColor3", "Border")
     local clock = create("TextLabel", {
         Position = UDim2.fromOffset(201, 0),
         Size = UDim2.new(1, -211, 1, 0),
@@ -1628,6 +1970,14 @@ function Window:CreateStatusBar(config)
         Parent = frame,
     })
     self.Library:_bind(clock, "TextColor3", "Text")
+    local separatorB = create("Frame", {
+        Position = UDim2.fromOffset(197, 10),
+        Size = UDim2.fromOffset(1, 16),
+        BackgroundColor3 = palette.Border,
+        BorderSizePixel = 0,
+        Parent = frame,
+    })
+    self.Library:_bind(separatorB, "BackgroundColor3", "Border")
     makeDraggable(frame, frame)
 
     local frames = 0
@@ -1656,13 +2006,13 @@ function Window:CreatePanel(config)
         Size = UDim2.fromOffset(config.Width or 210, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = palette.Surface,
-        BackgroundTransparency = 0.08,
+        BackgroundTransparency = 0.16,
         BorderSizePixel = 0,
         Parent = self.ScreenGui,
     })
     self.Library:_bind(frame, "BackgroundColor3", "Surface")
     round(frame, 9)
-    local frameStroke = stroke(frame, palette.Border, 0.28)
+    local frameStroke = stroke(frame, palette.Border, 0.42)
     self.Library:_bind(frameStroke, "Color", "Border")
     padding(frame, 10, 10, 9, 10)
     local layout = create("UIListLayout", {
@@ -1670,16 +2020,23 @@ function Window:CreatePanel(config)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = frame,
     })
-    local title = create("TextLabel", {
+    local titleRow = create("Frame", {
         Size = UDim2.new(1, 0, 0, 24),
         BackgroundTransparency = 1,
-        Text = (config.Icon or "◈") .. "  " .. (config.Title or "Panel"),
+        LayoutOrder = 0,
+        Parent = frame,
+    })
+    makeIcon(titleRow, config.Icon or config.Title, UDim2.fromOffset(1, 4), UDim2.fromOffset(16, 16), "Text")
+    local title = create("TextLabel", {
+        Position = UDim2.fromOffset(23, 0),
+        Size = UDim2.new(1, -23, 1, 0),
+        BackgroundTransparency = 1,
+        Text = config.Title or "Panel",
         TextColor3 = palette.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 0,
-        Parent = frame,
+        Parent = titleRow,
     })
     self.Library:_bind(title, "TextColor3", "Text")
     local line = create("Frame", {
@@ -1690,7 +2047,7 @@ function Window:CreatePanel(config)
         Parent = frame,
     })
     self.Library:_bind(line, "BackgroundColor3", "Border")
-    makeDraggable(title, frame)
+    makeDraggable(titleRow, frame)
     local panel = setmetatable({
         Frame = frame,
         Window = self,
@@ -1806,14 +2163,14 @@ function Window:_createSettingsTab()
     local settings = self:AddTab({
         Name = "Settings",
         Description = "Window, theme, keybinds, and configs",
-        Icon = "⚙",
+        Icon = "settings",
         LayoutOrder = 999,
         IsSettings = true,
     })
     local windowSection = settings:AddSection({
         Name = "Window",
         Description = "Show, hide, and unload",
-        Icon = "▣",
+        Icon = "window",
         Side = "Left",
     })
     windowSection:AddKeybind("Northwind_ToggleKey", {
@@ -1833,7 +2190,7 @@ function Window:_createSettingsTab()
     local themeSection = settings:AddSection({
         Name = "Theme",
         Description = "Smooth live color updates",
-        Icon = "✿",
+        Icon = "palette",
         Side = "Left",
     })
     local themeOption = themeSection:AddDropdown("Northwind_Theme", {
@@ -1857,7 +2214,7 @@ function Window:_createSettingsTab()
     local configSection = settings:AddSection({
         Name = "Configs",
         Description = "Current session or custom provider",
-        Icon = "▤",
+        Icon = "save",
         Side = "Right",
     })
     local configName = configSection:AddInput("Northwind_ConfigName", {
