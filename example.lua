@@ -16,10 +16,11 @@ SaveManager:SetProvider(SaveManager:CreateMemoryProvider())
 
 local Window = Library:CreateWindow({
     Title = "Northwind",
-    Subtitle = "A smooth modular interface",
+    Subtitle = "Window, panels, theme, type, configs",
     ToggleKey = Enum.KeyCode.RightShift,
     Settings = true,
     AutoShow = true,
+    Transparency = 0.06,
 })
 
 -- Detached HUD elements like the reference image.
@@ -30,7 +31,7 @@ Window:CreateStatusBar({
 
 local KeybindPanel = Window:CreatePanel({
     Title = "Keybinds",
-    Icon = "⌨",
+    Icon = "keyboard",
     Position = UDim2.fromOffset(16, 76),
     Width = 210,
 })
@@ -39,7 +40,7 @@ local actionKey = KeybindPanel:AddValue("Test action", "F")
 
 local SessionPanel = Window:CreatePanel({
     Title = "Session",
-    Icon = "◷",
+    Icon = "clock",
     Position = UDim2.fromOffset(16, 184),
     Width = 210,
 })
@@ -50,7 +51,7 @@ local demoProgress = SessionPanel:AddProgress("Demo progress", 16)
 
 local MetricsPanel = Window:CreatePanel({
     Title = "Metrics",
-    Icon = "◈",
+    Icon = "activity",
     Position = UDim2.fromOffset(16, 356),
     Width = 210,
 })
@@ -62,13 +63,13 @@ local workloadProgress = MetricsPanel:AddProgress("Workload", 38)
 local Dashboard = Window:AddTab({
     Name = "Dashboard",
     Description = "Overview and harmless test actions",
-    Icon = "⌂",
+    Icon = "home",
 })
 
 local Actions = Dashboard:AddSection({
     Name = "Actions",
     Description = "Button and notification examples",
-    Icon = "✦",
+    Icon = "sparkles",
     Side = "Left",
 })
 
@@ -98,7 +99,7 @@ Actions:AddLabel("These controls only print values and update the demonstration 
 local LiveValues = Dashboard:AddSection({
     Name = "Live values",
     Description = "Inputs update immediately",
-    Icon = "◉",
+    Icon = "activity",
     Side = "Right",
 })
 
@@ -136,13 +137,13 @@ LiveValues:AddDropdown("DemoMode", {
 local Controls = Window:AddTab({
     Name = "Controls",
     Description = "Every reusable input component",
-    Icon = "◇",
+    Icon = "sliders",
 })
 
 local Inputs = Controls:AddSection({
     Name = "Inputs",
     Description = "Text, dropdown, and slider",
-    Icon = "⌁",
+    Icon = "sliders",
     Side = "Left",
 })
 
@@ -178,7 +179,7 @@ Inputs:AddSlider("ExampleSlider", {
 local Binds = Controls:AddSection({
     Name = "Keybinds",
     Description = "Click a key field, then press a key",
-    Icon = "⌨",
+    Icon = "keyboard",
     Side = "Right",
 })
 
@@ -212,13 +213,13 @@ end)
 local Appearance = Window:AddTab({
     Name = "Appearance",
     Description = "Preview visual components",
-    Icon = "◉",
+    Icon = "eye",
 })
 
 local Preview = Appearance:AddSection({
     Name = "Preview",
     Description = "Typography and component spacing",
-    Icon = "✿",
+    Icon = "sparkles",
     Side = "Left",
 })
 Preview:AddLabel("Northwind uses rounded cards, restrained gradients, and smooth TweenService animation.")
@@ -229,7 +230,7 @@ Preview:AddSlider("PreviewSlider", { Text = "Smooth slider", Min = 0, Max = 100,
 local ThemePreview = Appearance:AddSection({
     Name = "Quick themes",
     Description = "The Settings tab has the full controls",
-    Icon = "☼",
+    Icon = "palette",
     Side = "Right",
 })
 ThemePreview:AddButton("Use Midnight", function()
