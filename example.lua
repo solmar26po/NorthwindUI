@@ -21,12 +21,17 @@ local Window = Library:CreateWindow({
     Settings = true,
     AutoShow = true,
     Transparency = 0.06,
+    CornerRadius = 17,
+    PanelsFollowMenuVisibility = false,
+    -- After uploading assets/NorthwindLogo.png to Roblox:
+    -- Logo = "rbxassetid://YOUR_IMAGE_ASSET_ID",
 })
 
 -- Detached HUD elements like the reference image.
 Window:CreateStatusBar({
     Title = "Northwind",
     Position = UDim2.fromOffset(16, 28),
+    FollowMenuVisibility = false,
 })
 
 local KeybindPanel = Window:CreatePanel({
@@ -34,6 +39,7 @@ local KeybindPanel = Window:CreatePanel({
     Icon = "keyboard",
     Position = UDim2.fromOffset(16, 76),
     Width = 210,
+    FollowMenuVisibility = true,
 })
 local menuKey = KeybindPanel:AddValue("Toggle menu", "R-Shift")
 local actionKey = KeybindPanel:AddValue("Test action", "F")
@@ -43,6 +49,7 @@ local SessionPanel = Window:CreatePanel({
     Icon = "clock",
     Position = UDim2.fromOffset(16, 184),
     Width = 210,
+    FollowMenuVisibility = false,
 })
 local uptimeValue = SessionPanel:AddValue("Uptime", "00:00")
 local eventsValue = SessionPanel:AddValue("Events", 0)
