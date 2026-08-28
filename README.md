@@ -1,6 +1,6 @@
 # Northwind UI
 
-Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, smooth color transitions, crisp code-drawn vector icons, detachable telemetry panels, and concise reusable controls.
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded dashboard shell, smooth color transitions, crisp code-drawn vector icons, detachable telemetry panels, and concise reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -40,7 +40,7 @@ local Window = Library:CreateWindow({
     ToggleKey = Enum.KeyCode.RightShift,
     Settings = true,
     Transparency = 0.06,
-    CornerRadius = 17,
+    CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
     Logo = "rbxassetid://1234567890",
 })
@@ -135,7 +135,11 @@ local Window = Library:CreateWindow({
 })
 ```
 
-The same logo is inherited by the detached status bar. You can override it with `Logo` inside `CreateStatusBar`.
+The same logo is inherited by the detached status bar. You can override it with `Logo` inside `CreateStatusBar`. Custom images render edge-to-edge inside a larger borderless logo box; the soft letter tile remains as the fallback when no image is supplied.
+
+## Lifecycle and performance
+
+Each window owns one shared pointer controller for dragging and sliders, plus one routed key-input listener. `Window:Destroy()` disconnects them, clears retained theme references, and removes the window from the library registry. Creating another window with the same `Name` automatically destroys the previous instance cleanly.
 
 ## Themes and configs
 

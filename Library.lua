@@ -13,7 +13,7 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 local Northwind = {
-    Version = "1.2.0",
+    Version = "1.3.0",
     Flags = {},
     Options = {},
     Windows = {},
@@ -100,6 +100,7 @@ local function stroke(parent, color, transparency, thickness)
         Transparency = transparency or 0,
         Thickness = thickness or 1,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        LineJoinMode = Enum.LineJoinMode.Round,
         Parent = parent,
     })
 end
@@ -662,39 +663,14 @@ local function addHover(button, normalToken, hoverToken)
     end)
 end
 
-local function makeDraggable(handle, target)
-    local dragging = false
-    local dragStart
-    local startPosition
+local function isPointerButton(input)
+    return input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch
+end
 
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPosition = target.Position
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            target.Position = UDim2.new(
-                startPosition.X.Scale,
-                startPosition.X.Offset + delta.X,
-                startPosition.Y.Scale,
-                startPosition.Y.Offset + delta.Y
-            )
-        end
-    end)
+local function isPointerMovement(input)
+    return input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
 end
 
 local function resolveParent(config)
@@ -711,12 +687,24 @@ function Northwind:CreateWindow(config)
     config = config or {}
     local palette = self:_theme()
     local screenParent = resolveParent(config)
-    local previousScreen = screenParent:FindFirstChild(config.Name or "NorthwindUI")
+    local screenName = config.Name or "NorthwindUI"
+
+    -- Replacing a named window must also release its global input connections.
+    for index = #self.Windows, 1, -1 do
+        local existing = self.Windows[index]
+        if existing.ScreenGui
+            and existing.ScreenGui.Parent == screenParent
+            and existing.ScreenGui.Name == screenName then
+            existing:Destroy()
+            break
+        end
+    end
+    local previousScreen = screenParent:FindFirstChild(screenName)
     if previousScreen then
         previousScreen:Destroy()
     end
     local screen = create("ScreenGui", {
-        Name = config.Name or "NorthwindUI",
+        Name = screenName,
         IgnoreGuiInset = true,
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -724,6 +712,7 @@ function Northwind:CreateWindow(config)
         Parent = screenParent,
     })
 
+    local cornerRadius = config.CornerRadius or 18
     local main = create("Frame", {
         Name = "Main",
         AnchorPoint = Vector2.new(0.5, 0.5),
@@ -736,8 +725,8 @@ function Northwind:CreateWindow(config)
         Parent = screen,
     })
     self:_bind(main, "BackgroundColor3", "Background")
-    round(main, config.CornerRadius or 17)
-    local mainStroke = stroke(main, palette.Border, 0.42)
+    round(main, cornerRadius)
+    local mainStroke = stroke(main, palette.Border, 0.38, 1.15)
     self:_bind(mainStroke, "Color", "Border")
 
     local scale = create("UIScale", { Scale = 0.96, Parent = main })
@@ -752,6 +741,20 @@ function Northwind:CreateWindow(config)
         Parent = main,
     })
     self:_bind(sidebar, "BackgroundColor3", "Sidebar")
+    round(sidebar, cornerRadius)
+
+    -- Roblox clips descendants to rectangular bounds, so the opaque sidebar
+    -- needs its own rounded outer edge. This fill keeps the inner seam square.
+    local sidebarFill = create("Frame", {
+        Name = "InnerCornerFill",
+        Position = UDim2.fromOffset(cornerRadius, 0),
+        Size = UDim2.new(1, -cornerRadius, 1, 0),
+        BackgroundColor3 = palette.Sidebar,
+        BackgroundTransparency = 0.08,
+        BorderSizePixel = 0,
+        Parent = sidebar,
+    })
+    self:_bind(sidebarFill, "BackgroundColor3", "Sidebar")
 
     local sidebarLine = create("Frame", {
         AnchorPoint = Vector2.new(1, 0),
@@ -763,33 +766,31 @@ function Northwind:CreateWindow(config)
     })
     self:_bind(sidebarLine, "BackgroundColor3", "Border")
 
+    local hasCustomLogo = type(config.Logo) == "string" and config.Logo ~= ""
     local brandMark = create("Frame", {
-        Position = UDim2.fromOffset(18, 18),
-        Size = UDim2.fromOffset(25, 25),
+        Position = UDim2.fromOffset(18, 15),
+        Size = UDim2.fromOffset(34, 34),
         BackgroundColor3 = palette.Accent,
-        BackgroundTransparency = 0.84,
+        BackgroundTransparency = hasCustomLogo and 1 or 0.82,
         BorderSizePixel = 0,
         Parent = sidebar,
     })
     self:_bind(brandMark, "BackgroundColor3", "Accent")
-    round(brandMark, 7)
-    local brandMarkStroke = stroke(brandMark, palette.Accent, 0.18, 1.2)
-    self:_bind(brandMarkStroke, "Color", "Accent")
+    round(brandMark, 10)
     local brandLetter = create("TextLabel", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         Text = "N",
         TextColor3 = palette.Text,
         Font = Enum.Font.GothamBold,
-        TextSize = 15,
+        TextSize = 17,
         Parent = brandMark,
     })
     self:_bind(brandLetter, "TextColor3", "Text")
-    if config.Logo then
+    if hasCustomLogo then
         brandLetter.Visible = false
         create("ImageLabel", {
-            Position = UDim2.fromOffset(3, 3),
-            Size = UDim2.new(1, -6, 1, -6),
+            Size = UDim2.fromScale(1, 1),
             BackgroundTransparency = 1,
             Image = config.Logo,
             ScaleType = Enum.ScaleType.Fit,
@@ -798,8 +799,8 @@ function Northwind:CreateWindow(config)
     end
 
     local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(52, 11),
-        Size = UDim2.new(1, -66, 0, 42),
+        Position = UDim2.fromOffset(61, 11),
+        Size = UDim2.new(1, -75, 0, 42),
         BackgroundTransparency = 1,
         Text = config.Title or "Northwind",
         TextColor3 = palette.Text,
@@ -829,7 +830,7 @@ function Northwind:CreateWindow(config)
         Size = UDim2.new(1, -37, 1, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        PlaceholderText = "  Search the interface...",
+        PlaceholderText = "Search the interface...",
         PlaceholderColor3 = palette.Muted,
         Text = "",
         TextColor3 = palette.Text,
@@ -971,28 +972,35 @@ function Northwind:CreateWindow(config)
         ToggleKey = config.ToggleKey or Enum.KeyCode.RightShift,
         _activeTab = nil,
         _connections = {},
+        _keybindHandlers = {},
+        _activePointer = nil,
+        _destroyed = false,
     }, Window)
 
     table.insert(self.Windows, window)
-    makeDraggable(brand, main)
+    window:_initInputController()
+    window:_bindDrag(brand, main)
 
-    search:GetPropertyChangedSignal("Text"):Connect(function()
+    window:_connect(search:GetPropertyChangedSignal("Text"), function()
         local query = string.lower(search.Text)
         for _, tab in ipairs(window.Tabs) do
             tab.Button.Visible = query == "" or string.find(string.lower(tab.Name), query, 1, true) ~= nil
         end
     end)
 
-    table.insert(window._connections, UserInputService.InputBegan:Connect(function(input, processed)
+    window:_connect(UserInputService.InputBegan, function(input, processed)
         if not processed and input.KeyCode == window.ToggleKey then
             window:Toggle()
         end
-    end))
+        for _, handler in ipairs(window._keybindHandlers) do
+            handler(input, processed)
+        end
+    end)
 
-    primarySubtab.MouseButton1Click:Connect(function()
+    window:_connect(primarySubtab.MouseButton1Click, function()
         window:SetHeaderSubtab("Settings")
     end)
-    secondarySubtab.MouseButton1Click:Connect(function()
+    window:_connect(secondarySubtab.MouseButton1Click, function()
         window:SetHeaderSubtab("Type")
     end)
 
@@ -1005,6 +1013,87 @@ function Northwind:CreateWindow(config)
     end
 
     return window
+end
+
+function Window:_connect(signal, callback)
+    local connection = signal:Connect(callback)
+    table.insert(self._connections, connection)
+    return connection
+end
+
+function Window:_initInputController()
+    if self._pointerControllerReady then
+        return
+    end
+    self._pointerControllerReady = true
+
+    self:_connect(UserInputService.InputChanged, function(input)
+        local active = self._activePointer
+        if not active or not isPointerMovement(input) then
+            return
+        end
+        if input.UserInputType == Enum.UserInputType.Touch and active.Input ~= input then
+            return
+        end
+        if active.Target and not active.Target.Parent then
+            self._activePointer = nil
+            return
+        end
+
+        if active.Kind == "Drag" then
+            local delta = input.Position - active.Start
+            active.Target.Position = UDim2.new(
+                active.Position.X.Scale,
+                active.Position.X.Offset + delta.X,
+                active.Position.Y.Scale,
+                active.Position.Y.Offset + delta.Y
+            )
+        elseif active.Kind == "Slider" then
+            active.Update(input)
+        end
+    end)
+
+    self:_connect(UserInputService.InputEnded, function(input)
+        local active = self._activePointer
+        if not active or not isPointerButton(input) then
+            return
+        end
+        if input.UserInputType ~= Enum.UserInputType.Touch or active.Input == input then
+            self._activePointer = nil
+        end
+    end)
+end
+
+function Window:_bindDrag(handle, target)
+    return self:_connect(handle.InputBegan, function(input)
+        if isPointerButton(input) then
+            self._activePointer = {
+                Kind = "Drag",
+                Input = input,
+                Target = target,
+                Start = input.Position,
+                Position = target.Position,
+            }
+        end
+    end)
+end
+
+function Window:_bindSlider(track, update)
+    return self:_connect(track.InputBegan, function(input)
+        if isPointerButton(input) then
+            self._activePointer = {
+                Kind = "Slider",
+                Input = input,
+                Target = track,
+                Update = update,
+            }
+            update(input)
+        end
+    end)
+end
+
+function Window:_registerKeybind(handler)
+    table.insert(self._keybindHandlers, handler)
 end
 
 function Window:SetVisible(visible, instant)
@@ -1068,11 +1157,38 @@ function Window:Toggle()
 end
 
 function Window:Destroy()
+    if self._destroyed then
+        return
+    end
+    self._destroyed = true
+    self._activePointer = nil
+    table.clear(self._keybindHandlers)
+
     for _, connection in ipairs(self._connections) do
         connection:Disconnect()
     end
+    table.clear(self._connections)
+
     if self.ScreenGui then
         self.ScreenGui:Destroy()
+    end
+
+    local windowIndex = table.find(self.Library.Windows, self)
+    if windowIndex then
+        table.remove(self.Library.Windows, windowIndex)
+    end
+
+    for index = #self.Library._themeBindings, 1, -1 do
+        local binding = self.Library._themeBindings[index]
+        if not binding.Instance or not binding.Instance.Parent then
+            table.remove(self.Library._themeBindings, index)
+        end
+    end
+    for index = #self.Library._textGradients, 1, -1 do
+        local gradient = self.Library._textGradients[index]
+        if not gradient or not gradient.Parent then
+            table.remove(self.Library._textGradients, index)
+        end
     end
 end
 
@@ -1423,7 +1539,6 @@ function Section:_row(height, transparent)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, height or 36),
         BackgroundColor3 = palette.SurfaceAlt,
-        BackgroundTransparency = 0.08,
         BackgroundTransparency = transparent and 1 or 0.12,
         BorderSizePixel = 0,
         Parent = self.Controls,
@@ -1673,30 +1788,15 @@ function Section:AddSlider(flag, config)
         self:_emit(silent)
     end
 
-    local dragging = false
     local function update(input)
-        local percent = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+        local width = track.AbsoluteSize.X
+        if width <= 0 then
+            return
+        end
+        local percent = math.clamp((input.Position.X - track.AbsolutePosition.X) / width, 0, 1)
         option:SetValue(minimum + (maximum - minimum) * percent)
     end
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            update(input)
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
+    self.Window:_bindSlider(track, update)
     option:SetValue(option.Value, true)
     return option
 end
@@ -1962,7 +2062,7 @@ function Section:AddKeybind(flag, config)
         tween(button, 0.15, { BackgroundColor3 = Northwind:_theme().AccentSoft })
         tween(keyStroke, 0.15, { Transparency = 0.18, Color = Northwind:_theme().Accent })
     end)
-    UserInputService.InputBegan:Connect(function(input, processed)
+    self.Window:_registerKeybind(function(input, processed)
         if listening and input.KeyCode ~= Enum.KeyCode.Unknown then
             listening = false
             option:SetValue(input.KeyCode)
@@ -2126,34 +2226,32 @@ function Window:CreateStatusBar(config)
     round(frame, 9)
     local frameStroke = stroke(frame, palette.Border, 0.42)
     self.Library:_bind(frameStroke, "Color", "Border")
+    local logoImage = config.Logo or self.Logo
+    local hasCustomLogo = type(logoImage) == "string" and logoImage ~= ""
     local logo = create("Frame", {
-        Position = UDim2.fromOffset(10, 8),
-        Size = UDim2.fromOffset(20, 20),
+        Position = UDim2.fromOffset(8, 6),
+        Size = UDim2.fromOffset(24, 24),
         BackgroundColor3 = palette.Accent,
-        BackgroundTransparency = 0.82,
+        BackgroundTransparency = hasCustomLogo and 1 or 0.82,
         BorderSizePixel = 0,
         Parent = frame,
     })
     self.Library:_bind(logo, "BackgroundColor3", "Accent")
-    round(logo, 6)
-    local logoStroke = stroke(logo, palette.Accent, 0.16, 1.2)
-    self.Library:_bind(logoStroke, "Color", "Accent")
+    round(logo, 7)
     local logoLetter = create("TextLabel", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         Text = "N",
         TextColor3 = palette.Text,
         Font = Enum.Font.GothamBold,
-        TextSize = 12,
+        TextSize = 13,
         Parent = logo,
     })
     self.Library:_bind(logoLetter, "TextColor3", "Text")
-    local logoImage = config.Logo or self.Logo
-    if logoImage then
+    if hasCustomLogo then
         logoLetter.Visible = false
         create("ImageLabel", {
-            Position = UDim2.fromOffset(2, 2),
-            Size = UDim2.new(1, -4, 1, -4),
+            Size = UDim2.fromScale(1, 1),
             BackgroundTransparency = 1,
             Image = logoImage,
             ScaleType = Enum.ScaleType.Fit,
@@ -2161,8 +2259,8 @@ function Window:CreateStatusBar(config)
         })
     end
     local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(36, 0),
-        Size = UDim2.fromOffset(92, 36),
+        Position = UDim2.fromOffset(39, 0),
+        Size = UDim2.fromOffset(89, 36),
         BackgroundTransparency = 1,
         Text = config.Title or "Northwind",
         TextColor3 = palette.Accent,
@@ -2210,21 +2308,26 @@ function Window:CreateStatusBar(config)
         Parent = frame,
     })
     self.Library:_bind(separatorB, "BackgroundColor3", "Border")
-    makeDraggable(frame, frame)
+    self:_bindDrag(frame, frame)
 
     local frames = 0
     local elapsed = 0
-    local connection = RunService.RenderStepped:Connect(function(delta)
+    clock.Text = os.date("%H:%M:%S")
+    self:_connect(RunService.RenderStepped, function(delta)
+        if not frame.Visible then
+            frames = 0
+            elapsed = 0
+            return
+        end
         frames += 1
         elapsed += delta
         if elapsed >= 0.5 then
             fps.Text = "FPS " .. tostring(math.floor(frames / elapsed + 0.5))
+            clock.Text = os.date("%H:%M:%S")
             frames = 0
             elapsed = 0
         end
-        clock.Text = os.date("%H:%M:%S")
     end)
-    table.insert(self._connections, connection)
     local followVisibility = config.FollowMenuVisibility
     if followVisibility == nil then
         followVisibility = self.PanelsFollowMenuVisibility
@@ -2289,7 +2392,7 @@ function Window:CreatePanel(config)
         Parent = frame,
     })
     self.Library:_bind(line, "BackgroundColor3", "Border")
-    makeDraggable(titleRow, frame)
+    self:_bindDrag(titleRow, frame)
     local panel = setmetatable({
         Frame = frame,
         Window = self,
