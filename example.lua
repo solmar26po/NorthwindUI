@@ -24,7 +24,7 @@ local Window = Library:CreateWindow({
     CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
     -- After uploading assets/NorthwindLogo.png to Roblox:
-    -- Logo = "rbxassetid://YOUR_IMAGE_ASSET_ID",
+    Logo = "rbxassetid://131649619262206",
 })
 
 -- Detached HUD elements like the reference image.
