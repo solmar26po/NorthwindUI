@@ -21,7 +21,7 @@ local Window = Library:CreateWindow({
     Settings = true,
     AutoShow = true,
     Transparency = 0.06,
-    CornerRadius = 17,
+    CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
     -- After uploading assets/NorthwindLogo.png to Roblox:
     -- Logo = "rbxassetid://YOUR_IMAGE_ASSET_ID",
