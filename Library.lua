@@ -1,9 +1,3 @@
---[[
-    Northwind UI
-    Original Roblox/Luau interface library inspired by modern dashboard layouts.
-    UI only: this module does not contain game automation or exploit functionality.
-]]
-
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -31,14 +25,14 @@ local FONT_PRESETS = {
 }
 
 local Northwind = {
-    Version = "1.4.0",
+    Version = "1.5.0",
     Flags = {},
     Options = {},
     Windows = {},
     Configs = {},
     ActiveTheme = "Midnight",
-    TypographyPreset = "Builder Sans",
-    Typography = table.clone(FONT_PRESETS["Builder Sans"]),
+    TypographyPreset = "Gotham",
+    Typography = table.clone(FONT_PRESETS.Gotham),
     Motion = {
         Enabled = true,
         Speed = 1,
@@ -214,8 +208,6 @@ local function tween(instance, duration, properties, style, direction)
     return animation
 end
 
--- Icons are drawn with Roblox UI primitives instead of Unicode characters.
--- This keeps them sharp on every platform and avoids missing-glyph squares.
 local ICON_ALIASES = {
     ["settings"] = "settings", ["gear"] = "settings",
     ["window"] = "window", ["panel"] = "window",
@@ -887,6 +879,31 @@ function Northwind:DeleteConfig(name)
     end
 end
 
+function Northwind:ListConfigs()
+    local found = {}
+    for name in pairs(self.Configs) do
+        found[tostring(name)] = true
+    end
+    if self._configProvider and self._configProvider.List then
+        local ok, names = pcall(function()
+            return self._configProvider:List()
+        end)
+        if ok and type(names) == "table" then
+            for _, name in ipairs(names) do
+                found[tostring(name)] = true
+            end
+        end
+    end
+    local names = {}
+    for name in pairs(found) do
+        table.insert(names, name)
+    end
+    table.sort(names, function(a, b)
+        return string.lower(a) < string.lower(b)
+    end)
+    return names
+end
+
 local Option = {}
 Option.__index = Option
 
@@ -936,6 +953,9 @@ Section.__index = Section
 
 local Panel = {}
 Panel.__index = Panel
+
+local ESPPreview = {}
+ESPPreview.__index = ESPPreview
 
 local function addHover(button, normalToken, hoverToken)
     Northwind:_bind(button, "BackgroundColor3", normalToken)
@@ -1003,7 +1023,6 @@ function Northwind:CreateWindow(config)
     local screenParent = resolveParent(config)
     local screenName = config.Name or "NorthwindUI"
 
-    -- Replacing a named window must also release its global input connections.
     for index = #self.Windows, 1, -1 do
         local existing = self.Windows[index]
         if existing.ScreenGui
@@ -1057,8 +1076,6 @@ function Northwind:CreateWindow(config)
     self:_bind(sidebar, "BackgroundColor3", "Sidebar")
     round(sidebar, cornerRadius)
 
-    -- Roblox clips descendants to rectangular bounds, so the opaque sidebar
-    -- needs its own rounded outer edge. This fill keeps the inner seam square.
     local sidebarFill = create("Frame", {
         Name = "InnerCornerFill",
         Position = UDim2.fromOffset(cornerRadius, 0),
@@ -1337,6 +1354,11 @@ function Northwind:CreateWindow(config)
         window:_createSettingsTab()
     end
 
+    if config.ESPPreview then
+        local previewConfig = type(config.ESPPreview) == "table" and config.ESPPreview or {}
+        window:CreateESPPreview(previewConfig)
+    end
+
     if config.AutoShow == false then
         window:SetVisible(false, true)
     end
@@ -1449,7 +1471,7 @@ function Window:SetVisible(visible, instant)
     end
     for _, panel in ipairs(self.Panels) do
         if panel.FollowMenuVisibility then
-            panel.Frame.Visible = visible
+            panel.Frame.Visible = visible and panel.Enabled ~= false
         end
     end
 end
@@ -1512,6 +1534,10 @@ function Window:Destroy()
         connection:Disconnect()
     end
     table.clear(self._connections)
+
+    if self.ESPPreview then
+        self.ESPPreview:Destroy()
+    end
 
     if self.ScreenGui then
         self.ScreenGui:Destroy()
@@ -1745,6 +1771,9 @@ function Window:AddTab(config)
     end
     return tab
 end
+
+Window.CreateTab = Window.AddTab
+Window.Tab = Window.AddTab
 
 function Tab:AddSubPage(name)
     local palette = self.Library:_theme()
@@ -2484,7 +2513,6 @@ function Section:AddColorPicker(flag, config)
     return option
 end
 
--- Compatibility aliases for a compact API.
 Section.Button = Section.AddButton
 Section.Label = Section.AddLabel
 Section.Divider = Section.AddDivider
@@ -2494,6 +2522,7 @@ Section.Slider = Section.AddSlider
 Section.Dropdown = Section.AddDropdown
 Section.Keybind = Section.AddKeybind
 Tab.Section = Tab.AddSection
+Tab.CreateSection = Tab.AddSection
 
 function Window:Notify(config, description, duration)
     if type(config) == "string" then
@@ -2728,8 +2757,9 @@ function Window:CreateStatusBar(config)
         Window = self,
         Rows = {},
         FollowMenuVisibility = followVisibility,
+        Enabled = true,
     }, Panel)
-    frame.Visible = followVisibility and self.Visible or true
+    frame.Visible = (not followVisibility) or self.Visible
     table.insert(self.Panels, panel)
     return panel
 end
@@ -2792,12 +2822,13 @@ function Window:CreatePanel(config)
         Window = self,
         Layout = layout,
         Rows = {},
+        Enabled = true,
         FollowMenuVisibility = config.FollowMenuVisibility == nil
             and self.PanelsFollowMenuVisibility
             or config.FollowMenuVisibility == true,
         _nextOrder = 2,
     }, Panel)
-    frame.Visible = panel.FollowMenuVisibility and self.Visible or true
+    frame.Visible = (not panel.FollowMenuVisibility) or self.Visible
     table.insert(self.Panels, panel)
     return panel
 end
@@ -2805,15 +2836,16 @@ end
 function Panel:SetFollowMenuVisibility(follow)
     self.FollowMenuVisibility = follow == true
     if self.FollowMenuVisibility then
-        self.Frame.Visible = self.Window.Visible
+        self.Frame.Visible = self.Window.Visible and self.Enabled ~= false
     else
-        self.Frame.Visible = true
+        self.Frame.Visible = self.Enabled ~= false
     end
     return self
 end
 
 function Panel:SetVisible(visible)
-    self.Frame.Visible = visible == true
+    self.Enabled = visible == true
+    self.Frame.Visible = self.Enabled and ((not self.FollowMenuVisibility) or self.Window.Visible)
     return self
 end
 
@@ -2917,6 +2949,453 @@ function Panel:AddProgress(name, initial)
     return handle
 end
 
+function ESPPreview:_connect(signal, callback)
+    local connection = signal:Connect(callback)
+    table.insert(self._connections, connection)
+    return connection
+end
+
+function ESPPreview:SetFollowMenuVisibility(follow)
+    self.FollowMenuVisibility = follow == true
+    self.Frame.Visible = self.Enabled and ((not self.FollowMenuVisibility) or self.Window.Visible)
+    return self
+end
+
+function ESPPreview:SetVisible(visible)
+    self.Enabled = visible == true
+    self.Frame.Visible = self.Enabled and ((not self.FollowMenuVisibility) or self.Window.Visible)
+    return self
+end
+
+function ESPPreview:SetBoxEnabled(enabled)
+    self.Box.Visible = enabled == true
+    return self
+end
+
+function ESPPreview:SetNameEnabled(enabled)
+    self.NameLabel.Visible = enabled == true
+    return self
+end
+
+function ESPPreview:SetHealthEnabled(enabled)
+    self.HealthTrack.Visible = enabled == true
+    return self
+end
+
+function ESPPreview:SetDistanceEnabled(enabled)
+    self.DistanceLabel.Visible = enabled == true
+    return self
+end
+
+function ESPPreview:SetTracerEnabled(enabled)
+    self.Tracer.Visible = enabled == true
+    return self
+end
+
+function ESPPreview:SetRotationSpeed(speed)
+    self.RotationSpeed = tonumber(speed) or 0
+    return self
+end
+
+function ESPPreview:SetAccent(color)
+    if typeof(color) ~= "Color3" then
+        return self
+    end
+    self.BoxStroke.Color = color
+    self.HealthFill.BackgroundColor3 = color
+    self.Tracer.BackgroundColor3 = color
+    self.LiveDot.BackgroundColor3 = color
+    return self
+end
+
+function ESPPreview:_updateHealth(humanoid)
+    local health = humanoid and humanoid.MaxHealth > 0 and math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1) or 1
+    if math.abs(health - self._lastHealth) > 0.001 then
+        self._lastHealth = health
+        tween(self.HealthFill, 0.18, { Size = UDim2.fromScale(1, health) })
+    end
+end
+
+function ESPPreview:RefreshCharacter(character)
+    if self._destroyed then
+        return self
+    end
+    if self.Model then
+        self.Model:Destroy()
+        self.Model = nil
+    end
+    if self._healthConnection then
+        self._healthConnection:Disconnect()
+        self._healthConnection = nil
+    end
+    if self._maxHealthConnection then
+        self._maxHealthConnection:Disconnect()
+        self._maxHealthConnection = nil
+    end
+    character = character or (LocalPlayer and LocalPlayer.Character)
+    if not character then
+        self.EmptyLabel.Visible = true
+        return self
+    end
+
+    local wasArchivable = character.Archivable
+    character.Archivable = true
+    local ok, clone = pcall(function()
+        return character:Clone()
+    end)
+    character.Archivable = wasArchivable
+    if not ok or not clone then
+        self.EmptyLabel.Visible = true
+        return self
+    end
+
+    for _, descendant in ipairs(clone:GetDescendants()) do
+        if descendant:IsA("Script") or descendant:IsA("LocalScript") or descendant:IsA("ModuleScript") or descendant:IsA("Tool") then
+            descendant:Destroy()
+        elseif descendant:IsA("BasePart") then
+            descendant.Anchored = true
+            descendant.CanCollide = false
+            descendant.CanQuery = false
+            descendant.CanTouch = false
+            descendant.CastShadow = false
+        elseif descendant:IsA("Humanoid") then
+            descendant.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+        end
+    end
+
+    clone.Name = "PreviewCharacter"
+    clone.Parent = self.WorldModel
+    local boundsCFrame, boundsSize = clone:GetBoundingBox()
+    local boundsOffset = clone:GetPivot():ToObjectSpace(boundsCFrame)
+    self.ModelPivot = boundsOffset:Inverse()
+    self.Angle = 0
+    clone:PivotTo(self.ModelPivot)
+    self.Camera.FieldOfView = 32
+    local distance = math.max(boundsSize.Y * 1.38, boundsSize.X * 1.85, 5.5)
+    local focus = Vector3.new(0, boundsSize.Y * 0.025, 0)
+    self.Camera.CFrame = CFrame.lookAt(Vector3.new(0, focus.Y, -distance), focus)
+    self.Model = clone
+    self.EmptyLabel.Visible = false
+    local sourceHumanoid = character:FindFirstChildOfClass("Humanoid")
+    self:_updateHealth(sourceHumanoid)
+    if sourceHumanoid then
+        self._healthConnection = sourceHumanoid.HealthChanged:Connect(function()
+            self:_updateHealth(sourceHumanoid)
+        end)
+        self._maxHealthConnection = sourceHumanoid:GetPropertyChangedSignal("MaxHealth"):Connect(function()
+            self:_updateHealth(sourceHumanoid)
+        end)
+    end
+    if LocalPlayer then
+        self.NameLabel.Text = LocalPlayer.DisplayName
+        self.DistanceLabel.Text = LocalPlayer.Name .. "  •  YOU"
+    end
+    return self
+end
+
+function ESPPreview:Destroy()
+    if self._destroyed then
+        return
+    end
+    self._destroyed = true
+    for _, connection in ipairs(self._connections) do
+        connection:Disconnect()
+    end
+    table.clear(self._connections)
+    if self._healthConnection then
+        self._healthConnection:Disconnect()
+    end
+    if self._maxHealthConnection then
+        self._maxHealthConnection:Disconnect()
+    end
+    for index = #self.Window.Panels, 1, -1 do
+        if self.Window.Panels[index] == self then
+            table.remove(self.Window.Panels, index)
+            break
+        end
+    end
+    if self.Window.ESPPreview == self then
+        self.Window.ESPPreview = nil
+    end
+    self.Frame:Destroy()
+end
+
+function Window:CreateESPPreview(config)
+    config = config or {}
+    if self.ESPPreview then
+        self.ESPPreview:Destroy()
+    end
+
+    local palette = self.Library:_theme()
+    local width = math.clamp(tonumber(config.Width) or 232, 190, 360)
+    local height = math.clamp(tonumber(config.Height) or 372, 260, 520)
+    local gap = math.clamp(tonumber(config.Gap) or 12, 0, 40)
+    local frame = create("Frame", {
+        Name = "ESPPreview",
+        Size = UDim2.fromOffset(width, height),
+        BackgroundColor3 = palette.Surface,
+        BackgroundTransparency = config.Transparency == nil and 0.08 or config.Transparency,
+        BorderSizePixel = 0,
+        Parent = self.ScreenGui,
+    })
+    self.Library:_bind(frame, "BackgroundColor3", "Surface")
+    round(frame, config.CornerRadius or 14)
+    local frameStroke = stroke(frame, palette.Border, 0.28, 1.1)
+    self.Library:_bind(frameStroke, "Color", "Border")
+    addSurfaceMotion(frame, frameStroke, 0.08, 0.035, 0.28)
+    local previewScale = create("UIScale", { Scale = 0.96, Parent = frame })
+    tween(previewScale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back)
+
+    local header = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundTransparency = 1,
+        Parent = frame,
+    })
+    local liveDot = create("Frame", {
+        Position = UDim2.fromOffset(14, 21),
+        Size = UDim2.fromOffset(7, 7),
+        BackgroundColor3 = palette.Accent,
+        BorderSizePixel = 0,
+        Parent = header,
+    })
+    self.Library:_bind(liveDot, "BackgroundColor3", "Accent")
+    round(liveDot, 4)
+    local title = create("TextLabel", {
+        Position = UDim2.fromOffset(29, 4),
+        Size = UDim2.new(1, -78, 1, -8),
+        BackgroundTransparency = 1,
+        Text = config.Title or "ESP Preview",
+        TextColor3 = palette.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        FontRole = "Bold",
+        Parent = header,
+    })
+    self.Library:_bind(title, "TextColor3", "Text")
+    local liveLabel = create("TextLabel", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -13, 0.5, 0),
+        Size = UDim2.fromOffset(42, 20),
+        BackgroundColor3 = palette.AccentSoft,
+        BackgroundTransparency = 0.28,
+        BorderSizePixel = 0,
+        Text = "LIVE",
+        TextColor3 = palette.Text,
+        TextSize = 9,
+        FontRole = "Bold",
+        Parent = header,
+    })
+    self.Library:_bind(liveLabel, "BackgroundColor3", "AccentSoft")
+    self.Library:_bind(liveLabel, "TextColor3", "Text")
+    round(liveLabel, 6)
+
+    local divider = create("Frame", {
+        Position = UDim2.fromOffset(12, 47),
+        Size = UDim2.new(1, -24, 0, 1),
+        BackgroundColor3 = palette.Border,
+        BorderSizePixel = 0,
+        Parent = frame,
+    })
+    self.Library:_bind(divider, "BackgroundColor3", "Border")
+
+    local viewport = create("ViewportFrame", {
+        Position = UDim2.fromOffset(12, 59),
+        Size = UDim2.new(1, -24, 1, -71),
+        BackgroundColor3 = palette.Background,
+        BackgroundTransparency = config.ViewportTransparency == nil and 0.18 or config.ViewportTransparency,
+        BorderSizePixel = 0,
+        Ambient = Color3.fromRGB(170, 174, 205),
+        LightColor = Color3.fromRGB(245, 247, 255),
+        LightDirection = Vector3.new(-1, -0.6, -1),
+        ClipsDescendants = true,
+        Parent = frame,
+    })
+    self.Library:_bind(viewport, "BackgroundColor3", "Background")
+    round(viewport, 10)
+    local viewportStroke = stroke(viewport, palette.Border, 0.62)
+    self.Library:_bind(viewportStroke, "Color", "Border")
+    local viewportGradient = create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(142, 151, 255)),
+        }),
+        Rotation = 90,
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.84),
+            NumberSequenceKeypoint.new(1, 0.98),
+        }),
+        Parent = viewport,
+    })
+
+    local worldModel = create("WorldModel", { Parent = viewport })
+    local camera = create("Camera", { Parent = viewport })
+    viewport.CurrentCamera = camera
+
+    local box = create("Frame", {
+        Position = UDim2.fromScale(0.19, 0.1),
+        Size = UDim2.fromScale(0.62, 0.76),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Parent = viewport,
+    })
+    local boxStroke = stroke(box, palette.Accent, 0.08, 1.35)
+    self.Library:_bind(boxStroke, "Color", "Accent")
+    round(box, 3)
+
+    local nameLabel = create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 1),
+        Position = UDim2.fromScale(0.5, 0.095),
+        Size = UDim2.new(0.86, 0, 0, 19),
+        BackgroundTransparency = 1,
+        Text = LocalPlayer and LocalPlayer.DisplayName or "Local Player",
+        TextColor3 = palette.Text,
+        TextSize = 11,
+        FontRole = "Bold",
+        Parent = viewport,
+    })
+    self.Library:_bind(nameLabel, "TextColor3", "Text")
+
+    local healthTrack = create("Frame", {
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.fromScale(0.165, 0.1),
+        Size = UDim2.fromScale(0.018, 0.76),
+        BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.18,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = viewport,
+    })
+    self.Library:_bind(healthTrack, "BackgroundColor3", "SurfaceAlt")
+    round(healthTrack, 4)
+    local healthFill = create("Frame", {
+        AnchorPoint = Vector2.new(0, 1),
+        Position = UDim2.fromScale(0, 1),
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = palette.Accent,
+        BorderSizePixel = 0,
+        Parent = healthTrack,
+    })
+    self.Library:_bind(healthFill, "BackgroundColor3", "Accent")
+    round(healthFill, 4)
+
+    local distanceLabel = create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.fromScale(0.5, 0.875),
+        Size = UDim2.new(0.9, 0, 0, 18),
+        BackgroundTransparency = 1,
+        Text = LocalPlayer and (LocalPlayer.Name .. "  •  YOU") or "YOU",
+        TextColor3 = palette.Muted,
+        TextSize = 9,
+        FontRole = "Medium",
+        Parent = viewport,
+    })
+    self.Library:_bind(distanceLabel, "TextColor3", "Muted")
+
+    local tracer = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 1),
+        Position = UDim2.fromScale(0.5, 1),
+        Size = UDim2.new(0, 1, 0.12, 0),
+        BackgroundColor3 = palette.Accent,
+        BackgroundTransparency = 0.18,
+        BorderSizePixel = 0,
+        Parent = viewport,
+    })
+    self.Library:_bind(tracer, "BackgroundColor3", "Accent")
+
+    local emptyLabel = create("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(1, -28, 0, 44),
+        BackgroundTransparency = 1,
+        Text = "Waiting for your character…",
+        TextColor3 = palette.Muted,
+        TextSize = 11,
+        TextWrapped = true,
+        Parent = viewport,
+    })
+    self.Library:_bind(emptyLabel, "TextColor3", "Muted")
+
+    local followVisibility = config.FollowMenuVisibility
+    if followVisibility == nil then
+        followVisibility = self.PanelsFollowMenuVisibility
+    end
+    local preview = setmetatable({
+        Window = self,
+        Frame = frame,
+        Viewport = viewport,
+        WorldModel = worldModel,
+        Camera = camera,
+        Box = box,
+        BoxStroke = boxStroke,
+        NameLabel = nameLabel,
+        HealthTrack = healthTrack,
+        HealthFill = healthFill,
+        DistanceLabel = distanceLabel,
+        Tracer = tracer,
+        EmptyLabel = emptyLabel,
+        LiveDot = liveDot,
+        Gradient = viewportGradient,
+        FollowMenuVisibility = followVisibility,
+        Enabled = true,
+        RotationSpeed = tonumber(config.RotationSpeed) or 12,
+        Angle = 0,
+        _connections = {},
+        _destroyed = false,
+        _lastHealth = -1,
+    }, ESPPreview)
+    self.ESPPreview = preview
+    table.insert(self.Panels, preview)
+    frame.Visible = (not followVisibility) or self.Visible
+    box.Visible = config.ShowBox ~= false
+    nameLabel.Visible = config.ShowName ~= false
+    healthTrack.Visible = config.ShowHealth ~= false
+    distanceLabel.Visible = config.ShowDistance ~= false
+    tracer.Visible = config.ShowTracer ~= false
+
+    local function syncAttachment()
+        if preview._destroyed or not self.Main.Parent then
+            return
+        end
+        local mainPosition = self.Main.AbsolutePosition
+        local mainSize = self.Main.AbsoluteSize
+        local x = mainPosition.X + mainSize.X + gap
+        local y = mainPosition.Y + (mainSize.Y - height) * 0.5 + (tonumber(config.OffsetY) or 0)
+        frame.Position = UDim2.fromOffset(math.floor(x + 0.5), math.floor(y + 0.5))
+    end
+    preview:_connect(self.Main:GetPropertyChangedSignal("AbsolutePosition"), syncAttachment)
+    preview:_connect(self.Main:GetPropertyChangedSignal("AbsoluteSize"), syncAttachment)
+    task.defer(syncAttachment)
+
+    if LocalPlayer then
+        preview:_connect(LocalPlayer.CharacterAdded, function(character)
+            task.delay(0.35, function()
+                if not preview._destroyed then
+                    preview:RefreshCharacter(character)
+                end
+            end)
+        end)
+        preview:_connect(LocalPlayer.CharacterAppearanceLoaded, function(character)
+            preview:RefreshCharacter(character)
+        end)
+    end
+
+    preview:_connect(RunService.RenderStepped, function(delta)
+        if not frame.Visible then
+            return
+        end
+        preview.Angle = (preview.Angle + math.rad(preview.RotationSpeed) * delta) % (math.pi * 2)
+        if preview.Model and preview.Model.Parent and preview.ModelPivot then
+            preview.Model:PivotTo(CFrame.Angles(0, preview.Angle, 0) * preview.ModelPivot)
+        end
+    end)
+
+    preview:RefreshCharacter()
+    if typeof(config.Accent) == "Color3" then
+        preview:SetAccent(config.Accent)
+    end
+    return preview
+end
+
 function Window:_createSettingsTab()
     local settings = self:AddTab({
         Name = "Settings",
@@ -2997,11 +3476,36 @@ function Window:_createSettingsTab()
         Placeholder = "config name",
     })
     configName.Save = false
+    local configPicker
+    local function refreshConfigList(preferred)
+        local names = self.Library:ListConfigs()
+        if #names == 0 then
+            names = { "default" }
+        end
+        configPicker:SetValues(names)
+        local selected = preferred or configPicker.Value
+        if not table.find(names, selected) then
+            selected = names[1]
+        end
+        configPicker:SetValue(selected, true)
+        configName:SetValue(selected, true)
+    end
+    configPicker = configSection:AddDropdown("Northwind_SelectedConfig", {
+        Text = "Saved configs",
+        Values = { "default" },
+        Default = "default",
+        Callback = function(value)
+            configName:SetValue(value, true)
+        end,
+    })
+    configPicker.Save = false
     configSection:AddButton({
         Text = "Save config",
         Callback = function()
-            self.Library:SaveConfig(configName.Value)
-            self:Notify("Config saved", configName.Value .. " is ready to load")
+            local name = tostring(configName.Value or "default")
+            self.Library:SaveConfig(name)
+            refreshConfigList(name)
+            self:Notify("Config saved", name .. " is ready to load")
         end,
     })
     configSection:AddButton({
@@ -3014,11 +3518,20 @@ function Window:_createSettingsTab()
     configSection:AddButton({
         Text = "Delete config",
         Callback = function()
-            self.Library:DeleteConfig(configName.Value)
-            self:Notify("Config deleted", configName.Value)
+            local name = tostring(configName.Value or "default")
+            self.Library:DeleteConfig(name)
+            refreshConfigList()
+            self:Notify("Config deleted", name)
+        end,
+    })
+    configSection:AddButton({
+        Text = "Refresh config list",
+        Callback = function()
+            refreshConfigList()
         end,
     })
     configSection:AddLabel("Configs persist when a storage provider is attached. Without one, they last for the current session.")
+    refreshConfigList("default")
 
     local typePage = settings:AddSubPage("Type")
     settings.TypePage = typePage
@@ -3144,8 +3657,8 @@ function Window:_createSettingsTab()
     })
     local fontPreset = typographySection:AddDropdown("Northwind_FontPreset", {
         Text = "Font",
-        Values = { "Builder Sans", "Gotham", "Source Sans" },
-        Default = self.Library.TypographyPreset ~= "Custom" and self.Library.TypographyPreset or "Builder Sans",
+        Values = { "Gotham", "Builder Sans", "Source Sans" },
+        Default = self.Library.TypographyPreset ~= "Custom" and self.Library.TypographyPreset or "Gotham",
         Callback = function(value)
             self.Library:SetTypography(value)
         end,
