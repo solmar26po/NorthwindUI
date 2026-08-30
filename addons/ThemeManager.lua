@@ -1,4 +1,3 @@
--- Northwind UI theme helper
 local ThemeManager = {
     Library = nil,
 }
