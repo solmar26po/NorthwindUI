@@ -19,8 +19,8 @@ local Window = Library:CreateWindow({
     ToggleKey = Enum.KeyCode.RightShift,
     Settings = true,
     AutoShow = true,
-    Position = UDim2.fromScale(0.47, 0.5),
-    Size = UDim2.fromOffset(760, 560),
+    Position = UDim2.fromScale(0.48, 0.5),
+    Size = UDim2.fromOffset(820, 560),
     Transparency = 0.06,
     CornerRadius = 18,
     PanelsFollowMenuVisibility = true,
@@ -36,6 +36,20 @@ local Window = Library:CreateWindow({
         Finish = Color3.fromRGB(124, 138, 255),
         Speed = 0.45,
         ApplyToFPS = true,
+    },
+    BackgroundAnimation = {
+        Enabled = true,
+        Preset = "Stars",
+        Speed = 0.7,
+        Density = 0.48,
+        Color = Color3.fromRGB(154, 165, 255),
+    },
+    ScreenAnimation = {
+        Enabled = true,
+        Preset = "Snow",
+        Speed = 0.82,
+        Density = 0.62,
+        Color = Color3.fromRGB(242, 246, 255),
     },
     LogoStyle = "Monogram",
     LogoText = "NW",
@@ -326,7 +340,21 @@ end)
 ThemePreview:AddButton("Use Nord", function()
     ThemeManager:ApplyTheme("Nord")
 end)
-ThemePreview:AddLabel("Open Settings → Type for animated text gradients, brand colors, font presets, and motion controls.")
+ThemePreview:AddColorPicker("ExampleAccentColor", {
+    Text = "Accent",
+    Default = Library:_theme().Accent,
+    Callback = function(color)
+        Library:SetThemeColor("Accent", color)
+    end,
+})
+ThemePreview:AddColorPicker("ExampleCardColor", {
+    Text = "Cards",
+    Default = Library:_theme().Surface,
+    Callback = function(color)
+        Library:SetThemeColor("Surface", color)
+    end,
+})
+ThemePreview:AddLabel("Open Settings for every palette surface and animation preset, or Settings → Type for typography and gradients.")
 
 -- Live values keep the showcase moving without changing gameplay.
 local started = os.clock()

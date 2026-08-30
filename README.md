@@ -4,7 +4,7 @@
 
 Discord: **@solmar793**
 
-Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Gotham typography, animated brand gradients, clean borderless marks, crisp code-drawn icons, detachable telemetry panels, a local-character ESP preview, and reusable controls.
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Gotham typography, animated brand gradients, compact controls, live palette editing, upgraded code-drawn icons, pooled atmospheric effects, detachable telemetry panels, a local-character ESP preview, and reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -46,6 +46,7 @@ local Window = Library:CreateWindow({
     Transparency = 0.06,
     CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
+    Size = UDim2.fromOffset(960, 580),
 
     FontPreset = "Gotham",
     Motion = {
@@ -59,6 +60,20 @@ local Window = Library:CreateWindow({
         Finish = Color3.fromRGB(124, 138, 255),
         Speed = 0.45,
         ApplyToFPS = true,
+    },
+    BackgroundAnimation = {
+        Enabled = true,
+        Preset = "Stars",
+        Speed = 0.7,
+        Density = 0.5,
+        Color = Color3.fromRGB(154, 165, 255),
+    },
+    ScreenAnimation = {
+        Enabled = true,
+        Preset = "Snow",
+        Speed = 0.85,
+        Density = 0.6,
+        Color = Color3.fromRGB(242, 246, 255),
     },
 
     LogoStyle = "Monogram",
@@ -122,11 +137,19 @@ Section:AddKeybind("MyKey", {
         print("F pressed")
     end,
 })
+
+Section:AddColorPicker("MyColor", {
+    Text = "Custom color",
+    Default = Color3.fromRGB(124, 138, 255),
+    Callback = function(color)
+        print(color)
+    end,
+})
 ```
 
 Values are also available through `Library.Flags`, and control objects expose `GetValue()`, `SetValue(value)`, and `OnChanged(callback)`.
 
-Icons use Roblox UI primitives rather than Unicode glyphs, so they do not render as missing-glyph squares. Built-in names include `home`, `eye`, `sliders`, `settings`, `window`, `palette`, `save`, `keyboard`, `clock`, `target`, `activity`, and `sparkles`. A custom `rbxassetid://...` image can also be supplied through `Icon`.
+Icons use Roblox UI primitives rather than Unicode glyphs, so they do not render as missing-glyph squares. The refreshed set includes `home`, `eye`, `sliders`, `settings`, `window`, `palette`, `save`, `keyboard`, `clock`, `target`, `activity`, `sparkles`, `comet`, `snowflake`, `type`, and `layers`. A custom `rbxassetid://...` image can also be supplied through `Icon`.
 
 ## Detached panels
 
@@ -150,6 +173,8 @@ Progress:Set(70)
 ```
 
 Set `FollowMenuVisibility = true` on any status bar or detached panel that should close with the main menu. Set it to `false` to keep that panel visible. The generated Settings page also includes a **Keep panels visible** switch that updates every detached panel at once.
+
+Followed panels share the main window's open and close timing. Their scale transitions complete together, and all followed surfaces are hidden in the same completion step.
 
 ## ESP preview
 
@@ -197,21 +222,33 @@ Gotham is the default font. `FontPreset` accepts `"Gotham"`, `"Builder Sans"`, o
 
 `Motion.Enabled` disables transitions for reduced motion, and `Motion.Speed` scales their duration. Repeated animations targeting the same properties cancel cleanly instead of stacking.
 
+## Atmospheric animations
+
+`BackgroundAnimation` renders strictly behind the main menu controls. `ScreenAnimation` fills the game view while the menu is open but remains behind the menu, ESP preview, notifications, and detached panels. Both accept `Enabled`, `Preset`, `Speed`, `Density`, and `Color`.
+
+Available presets are `Off`, `Snow`, `Comets`, `Stars`, `Fireflies`, `Rain`, `Bubbles`, `Petals`, and `Embers`. The generated Settings page exposes every option live. Both layers use preallocated particle pools and share one per-window frame update, so changing density never creates particles every frame.
+
+```lua
+Window:SetBackgroundAnimation({ Preset = "Comets", Enabled = true })
+Window:SetScreenAnimation({ Preset = "Snow", Density = 0.7 })
+```
+
 ## Lifecycle and performance
 
-Each window owns one shared pointer controller for dragging and sliders, plus one routed key-input listener. `Window:Destroy()` disconnects them, clears retained theme, font, and gradient references, and removes the window from the library registry. Creating another window with the same `Name` automatically destroys the previous instance cleanly.
+Each window owns one shared pointer controller for dragging and sliders, one routed key-input listener, and one shared animation update. Atmospheric particles are created once and recycled. `Window:Destroy()` disconnects retained connections, clears theme, font, and gradient references, and removes the window from the library registry. Creating another window with the same `Name` automatically destroys the previous instance cleanly.
 
 ## Themes and configs
 
 The Settings tab is generated automatically unless `Settings = false` is passed to `CreateWindow`. It includes:
 
 - Midnight, Obsidian, and Nord theme presets
-- Six accent colors with live transitions
+- Palette selectors for accent, background, sidebar, cards, inputs, borders, text, muted text, and both gradient systems
 - Toggle-interface keybind editing
 - A functional **Type** page with Gotham/Builder Sans/Source Sans presets
 - Animated brand-gradient colors, speed, logo/status styling, and FPS control
 - Optional interface-wide text gradient plus reduced-motion and animation-speed controls
 - Detached-panel visibility behavior
+- Menu-background and full-screen animation presets, speed, density, and custom colors
 - Config save, load, delete, refresh, and saved-config dropdown controls
 
 Configs use memory storage by default. To persist them safely in an experience you own, attach a provider that sends config data to a server-owned DataStore. A provider implements `Save`, `Load`, `Delete`, and optionally `List`.

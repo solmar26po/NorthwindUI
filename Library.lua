@@ -25,7 +25,7 @@ local FONT_PRESETS = {
 }
 
 local Northwind = {
-    Version = "1.5.0",
+    Version = "1.6.0",
     Flags = {},
     Options = {},
     Windows = {},
@@ -223,6 +223,9 @@ local ICON_ALIASES = {
     ["actions"] = "sparkles", ["sparkles"] = "sparkles", ["preview"] = "sparkles",
     ["search"] = "search", ["chevron"] = "chevron-down", ["chevron-down"] = "chevron-down",
     ["toggle"] = "toggle", ["info"] = "info",
+    ["effects"] = "comet", ["animation"] = "comet", ["comet"] = "comet",
+    ["snow"] = "snowflake", ["snowflake"] = "snowflake",
+    ["type"] = "type", ["typography"] = "type", ["layers"] = "layers",
 }
 
 local LEGACY_ICON_ALIASES = {
@@ -325,85 +328,124 @@ local function makeIcon(parent, iconName, position, size, colorToken)
         })
         track(image, "ImageColor3")
     elseif resolved == "search" then
-        circle(0.43, 0.43, 0.55, 1.6)
-        line(0.63, 0.63, 0.86, 0.86, 2)
+        circle(0.42, 0.42, 0.58, 1.5)
+        line(0.62, 0.62, 0.88, 0.88, 1.8)
     elseif resolved == "home" then
-        line(0.13, 0.47, 0.5, 0.15, 2)
-        line(0.5, 0.15, 0.87, 0.47, 2)
-        line(0.23, 0.4, 0.23, 0.84, 2)
-        line(0.77, 0.4, 0.77, 0.84, 2)
-        line(0.23, 0.84, 0.77, 0.84, 2)
-        line(0.48, 0.84, 0.48, 0.62, 2)
+        line(0.12, 0.49, 0.5, 0.16, 1.8)
+        line(0.5, 0.16, 0.88, 0.49, 1.8)
+        outlineRect(0.5, 0.62, 0.58, 0.5, 3)
+        outlineRect(0.5, 0.7, 0.16, 0.28, 2)
     elseif resolved == "eye" then
-        line(0.08, 0.5, 0.32, 0.27, 1.8)
-        line(0.32, 0.27, 0.68, 0.27, 1.8)
-        line(0.68, 0.27, 0.92, 0.5, 1.8)
-        line(0.92, 0.5, 0.68, 0.73, 1.8)
-        line(0.68, 0.73, 0.32, 0.73, 1.8)
-        line(0.32, 0.73, 0.08, 0.5, 1.8)
-        circle(0.5, 0.5, 0.24, 1.4)
+        line(0.08, 0.5, 0.33, 0.27, 1.7)
+        line(0.33, 0.27, 0.67, 0.27, 1.7)
+        line(0.67, 0.27, 0.92, 0.5, 1.7)
+        line(0.92, 0.5, 0.67, 0.73, 1.7)
+        line(0.67, 0.73, 0.33, 0.73, 1.7)
+        line(0.33, 0.73, 0.08, 0.5, 1.7)
+        circle(0.5, 0.5, 0.22, 1, true)
     elseif resolved == "sliders" then
-        line(0.14, 0.26, 0.86, 0.26, 1.8)
-        line(0.14, 0.5, 0.86, 0.5, 1.8)
-        line(0.14, 0.74, 0.86, 0.74, 1.8)
-        circle(0.36, 0.26, 0.16, 1, true)
-        circle(0.67, 0.5, 0.16, 1, true)
-        circle(0.46, 0.74, 0.16, 1, true)
+        line(0.12, 0.25, 0.88, 0.25, 1.5)
+        line(0.12, 0.5, 0.88, 0.5, 1.5)
+        line(0.12, 0.75, 0.88, 0.75, 1.5)
+        circle(0.34, 0.25, 0.18, 1.3)
+        circle(0.68, 0.5, 0.18, 1.3)
+        circle(0.45, 0.75, 0.18, 1.3)
     elseif resolved == "settings" then
-        circle(0.5, 0.5, 0.34, 1.7)
-        circle(0.5, 0.5, 0.10, 1, true)
-        line(0.5, 0.07, 0.5, 0.26, 2)
-        line(0.5, 0.74, 0.5, 0.93, 2)
-        line(0.07, 0.5, 0.26, 0.5, 2)
-        line(0.74, 0.5, 0.93, 0.5, 2)
-        line(0.2, 0.2, 0.33, 0.33, 2)
-        line(0.67, 0.67, 0.8, 0.8, 2)
-        line(0.8, 0.2, 0.67, 0.33, 2)
-        line(0.33, 0.67, 0.2, 0.8, 2)
+        circle(0.5, 0.5, 0.46, 1.6)
+        circle(0.5, 0.5, 0.14, 1.2)
+        line(0.5, 0.06, 0.5, 0.24, 1.8)
+        line(0.5, 0.76, 0.5, 0.94, 1.8)
+        line(0.06, 0.5, 0.24, 0.5, 1.8)
+        line(0.76, 0.5, 0.94, 0.5, 1.8)
+        circle(0.5, 0.06, 0.12, 1, true)
+        circle(0.5, 0.94, 0.12, 1, true)
+        circle(0.06, 0.5, 0.12, 1, true)
+        circle(0.94, 0.5, 0.12, 1, true)
     elseif resolved == "window" then
-        outlineRect(0.5, 0.5, 0.78, 0.7, 3)
-        line(0.12, 0.34, 0.88, 0.34, 1.5)
-        circle(0.23, 0.22, 0.08, 1, true)
-        circle(0.38, 0.22, 0.08, 1, true)
+        outlineRect(0.5, 0.5, 0.82, 0.68, 3)
+        line(0.09, 0.36, 0.91, 0.36, 1.4)
+        circle(0.21, 0.23, 0.075, 1, true)
+        circle(0.35, 0.23, 0.075, 1, true)
+        line(0.22, 0.55, 0.78, 0.55, 1.5)
+        line(0.22, 0.7, 0.62, 0.7, 1.5)
     elseif resolved == "palette" then
-        circle(0.48, 0.5, 0.72, 1.6)
-        circle(0.35, 0.32, 0.10, 1, true)
-        circle(0.58, 0.28, 0.10, 1, true)
-        circle(0.68, 0.5, 0.10, 1, true)
-        circle(0.38, 0.63, 0.10, 1, true)
+        circle(0.48, 0.5, 0.76, 1.6)
+        circle(0.31, 0.34, 0.105, 1, true)
+        circle(0.52, 0.25, 0.105, 1, true)
+        circle(0.7, 0.39, 0.105, 1, true)
+        circle(0.35, 0.65, 0.105, 1, true)
+        circle(0.66, 0.68, 0.2, 1.4)
     elseif resolved == "save" then
-        outlineRect(0.5, 0.5, 0.72, 0.76, 3)
-        outlineRect(0.5, 0.29, 0.4, 0.22, 2)
-        outlineRect(0.5, 0.68, 0.42, 0.25, 2)
+        outlineRect(0.5, 0.5, 0.7, 0.78, 3)
+        line(0.25, 0.13, 0.68, 0.13, 1.6)
+        line(0.68, 0.13, 0.85, 0.3, 1.6)
+        line(0.3, 0.43, 0.7, 0.43, 1.5)
+        line(0.3, 0.58, 0.7, 0.58, 1.5)
+        line(0.3, 0.73, 0.58, 0.73, 1.5)
     elseif resolved == "keyboard" then
-        outlineRect(0.5, 0.5, 0.84, 0.58, 3)
-        for rowIndex = 0, 1 do
-            for columnIndex = 0, 3 do
-                circle(0.26 + columnIndex * 0.16, 0.39 + rowIndex * 0.22, 0.07, 1, true)
-            end
+        outlineRect(0.5, 0.5, 0.86, 0.6, 3)
+        for columnIndex = 0, 4 do
+            circle(0.22 + columnIndex * 0.14, 0.4, 0.06, 1, true)
+            circle(0.22 + columnIndex * 0.14, 0.56, 0.06, 1, true)
         end
-        line(0.31, 0.72, 0.69, 0.72, 1.7)
+        line(0.31, 0.72, 0.69, 0.72, 1.6)
     elseif resolved == "clock" then
-        circle(0.5, 0.5, 0.76, 1.6)
-        line(0.5, 0.5, 0.5, 0.27, 1.8)
-        line(0.5, 0.5, 0.68, 0.61, 1.8)
+        circle(0.5, 0.52, 0.72, 1.5)
+        line(0.5, 0.52, 0.5, 0.28, 1.7)
+        line(0.5, 0.52, 0.7, 0.63, 1.7)
+        line(0.4, 0.08, 0.6, 0.08, 1.7)
     elseif resolved == "target" then
-        circle(0.5, 0.5, 0.76, 1.5)
-        circle(0.5, 0.5, 0.42, 1.5)
-        circle(0.5, 0.5, 0.10, 1, true)
+        circle(0.5, 0.5, 0.7, 1.5)
+        circle(0.5, 0.5, 0.34, 1.4)
+        circle(0.5, 0.5, 0.09, 1, true)
+        line(0.5, 0.02, 0.5, 0.2, 1.4)
+        line(0.5, 0.8, 0.5, 0.98, 1.4)
+        line(0.02, 0.5, 0.2, 0.5, 1.4)
+        line(0.8, 0.5, 0.98, 0.5, 1.4)
     elseif resolved == "activity" then
         line(0.08, 0.56, 0.28, 0.56, 2)
         line(0.28, 0.56, 0.4, 0.24, 2)
         line(0.4, 0.24, 0.58, 0.78, 2)
         line(0.58, 0.78, 0.71, 0.43, 2)
         line(0.71, 0.43, 0.92, 0.43, 2)
+    elseif resolved == "sparkles" then
+        line(0.34, 0.12, 0.34, 0.62, 1.7)
+        line(0.09, 0.37, 0.59, 0.37, 1.7)
+        line(0.18, 0.2, 0.5, 0.54, 1.4)
+        line(0.5, 0.2, 0.18, 0.54, 1.4)
+        line(0.74, 0.56, 0.74, 0.9, 1.5)
+        line(0.57, 0.73, 0.91, 0.73, 1.5)
+    elseif resolved == "toggle" then
+        outlineRect(0.5, 0.5, 0.82, 0.48, 999)
+        circle(0.35, 0.5, 0.28, 1, true)
+    elseif resolved == "comet" then
+        circle(0.67, 0.34, 0.24, 1.4)
+        line(0.08, 0.84, 0.57, 0.43, 1.8)
+        line(0.22, 0.86, 0.62, 0.53, 1.3)
+        line(0.08, 0.67, 0.51, 0.31, 1.3)
+    elseif resolved == "snowflake" then
+        line(0.5, 0.08, 0.5, 0.92, 1.5)
+        line(0.14, 0.29, 0.86, 0.71, 1.5)
+        line(0.14, 0.71, 0.86, 0.29, 1.5)
+        circle(0.5, 0.5, 0.1, 1, true)
+    elseif resolved == "type" then
+        line(0.16, 0.2, 0.84, 0.2, 1.8)
+        line(0.5, 0.2, 0.5, 0.84, 1.8)
+        line(0.32, 0.84, 0.68, 0.84, 1.8)
+    elseif resolved == "layers" then
+        line(0.12, 0.34, 0.5, 0.12, 1.6)
+        line(0.5, 0.12, 0.88, 0.34, 1.6)
+        line(0.12, 0.34, 0.5, 0.56, 1.6)
+        line(0.5, 0.56, 0.88, 0.34, 1.6)
+        line(0.16, 0.57, 0.5, 0.78, 1.5)
+        line(0.5, 0.78, 0.84, 0.57, 1.5)
     elseif resolved == "chevron-down" then
-        line(0.2, 0.36, 0.5, 0.66, 1.8)
-        line(0.5, 0.66, 0.8, 0.36, 1.8)
+        line(0.18, 0.34, 0.5, 0.66, 1.6)
+        line(0.5, 0.66, 0.82, 0.34, 1.6)
     elseif resolved == "info" then
-        circle(0.5, 0.5, 0.76, 1.5)
-        line(0.5, 0.43, 0.5, 0.72, 2)
-        circle(0.5, 0.27, 0.10, 1, true)
+        circle(0.5, 0.5, 0.74, 1.5)
+        line(0.5, 0.43, 0.5, 0.73, 1.7)
+        circle(0.5, 0.27, 0.09, 1, true)
     else
         line(0.5, 0.08, 0.5, 0.92, 2)
         line(0.08, 0.5, 0.92, 0.5, 2)
@@ -737,6 +779,18 @@ function Northwind:SetAccent(color)
     self:SetTheme(custom)
 end
 
+function Northwind:SetThemeColor(token, color)
+    if typeof(color) ~= "Color3" or self:_theme()[token] == nil then
+        return
+    end
+    local custom = table.clone(self:_theme())
+    custom[token] = color
+    if token == "Accent" or token == "Surface" then
+        custom.AccentSoft = custom.Accent:Lerp(custom.Surface, 0.45)
+    end
+    self:SetTheme(custom)
+end
+
 function Northwind:SetConfigProvider(provider)
     self._configProvider = provider
 end
@@ -744,6 +798,7 @@ end
 function Northwind:GetConfigData()
     local values = {}
     local palette = {}
+    local primaryWindow = self.Windows[1]
     for token, color in pairs(self:_theme()) do
         if typeof(color) == "Color3" then
             palette[token] = colorToTable(color)
@@ -785,6 +840,22 @@ function Northwind:GetConfigData()
             enabled = self.Motion.Enabled,
             speed = self.Motion.Speed,
         },
+        animations = primaryWindow and {
+            background = {
+                enabled = primaryWindow.BackgroundAnimation.Enabled,
+                preset = primaryWindow.BackgroundAnimation.Preset,
+                speed = primaryWindow.BackgroundAnimation.Speed,
+                density = primaryWindow.BackgroundAnimation.Density,
+                color = colorToTable(primaryWindow.BackgroundAnimation.Color),
+            },
+            screen = {
+                enabled = primaryWindow.ScreenAnimation.Enabled,
+                preset = primaryWindow.ScreenAnimation.Preset,
+                speed = primaryWindow.ScreenAnimation.Speed,
+                density = primaryWindow.ScreenAnimation.Density,
+                color = colorToTable(primaryWindow.ScreenAnimation.Color),
+            },
+        } or nil,
         values = values,
     }
 end
@@ -834,6 +905,50 @@ function Northwind:ImportConfig(data)
     end
     if data.motion then
         self:SetMotion(data.motion.enabled, data.motion.speed)
+    end
+    if data.animations then
+        local function deserialize(settings)
+            if not settings then
+                return nil
+            end
+            return {
+                Enabled = settings.enabled,
+                Preset = settings.preset,
+                Speed = settings.speed,
+                Density = settings.density,
+                Color = tableToColor(settings.color or {}),
+            }
+        end
+        local background = deserialize(data.animations.background)
+        local screen = deserialize(data.animations.screen)
+        for _, window in ipairs(self.Windows) do
+            if background then
+                window:SetBackgroundAnimation(background)
+            end
+            if screen then
+                window:SetScreenAnimation(screen)
+            end
+        end
+        local function syncOptions(prefix, settings)
+            if not settings then
+                return
+            end
+            local mapped = {
+                Enabled = settings.Enabled,
+                Preset = settings.Preset,
+                Speed = math.floor((settings.Speed or 1) * 100 + 0.5),
+                Density = math.floor((settings.Density or 0.55) * 100 + 0.5),
+                Color = settings.Color,
+            }
+            for suffix, value in pairs(mapped) do
+                local option = self.Options[prefix .. suffix]
+                if option then
+                    option:SetValue(value, true)
+                end
+            end
+        end
+        syncOptions("Northwind_MenuAnimation", background)
+        syncOptions("Northwind_ScreenAnimation", screen)
     end
     for flag, value in pairs(data.values or {}) do
         local option = self.Options[flag]
@@ -983,6 +1098,254 @@ local function addSurfaceMotion(frame, outline, restingTransparency, hoverTransp
     end)
 end
 
+local AnimationLayer = {}
+AnimationLayer.__index = AnimationLayer
+
+local ANIMATION_PRESETS = { "Off", "Snow", "Comets", "Stars", "Fireflies", "Rain", "Bubbles", "Petals", "Embers" }
+
+local function createAnimationLayer(parent, settings, maxParticles)
+    local holder = create("Frame", {
+        Name = "AnimatedBackdrop",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = parent,
+    })
+    local layer = setmetatable({
+        Frame = holder,
+        Particles = {},
+        Random = Random.new(),
+        MaxParticles = maxParticles,
+        Enabled = false,
+        Preset = "Off",
+        Speed = 1,
+        Density = 0.55,
+        Color = Color3.fromRGB(235, 240, 255),
+        Active = true,
+    }, AnimationLayer)
+    for _ = 1, maxParticles do
+        local particle = create("Frame", {
+            BackgroundColor3 = layer.Color,
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Visible = false,
+            Parent = holder,
+        })
+        round(particle, 999)
+        local outline = stroke(particle, layer.Color, 1, 1)
+        table.insert(layer.Particles, {
+            Frame = particle,
+            Outline = outline,
+            Active = false,
+            X = 0,
+            Y = 0,
+            VX = 0,
+            VY = 0,
+            Phase = 0,
+            Drift = 0,
+        })
+    end
+    layer:Set(settings or {})
+    return layer
+end
+
+function AnimationLayer:_hideParticle(particle)
+    particle.Active = false
+    particle.Frame.Visible = false
+end
+
+function AnimationLayer:_spawnParticle(particle, width, height, initial)
+    local random = self.Random
+    local preset = self.Preset
+    local color = self.Color
+    local frame = particle.Frame
+    local outline = particle.Outline
+    particle.Active = true
+    particle.Phase = random:NextNumber(0, math.pi * 2)
+    particle.Drift = random:NextNumber(5, 24)
+    frame.Visible = true
+    frame.Rotation = 0
+    frame.BackgroundColor3 = color
+    frame.BackgroundTransparency = 0.3
+    outline.Color = color
+    outline.Transparency = 1
+
+    if preset == "Snow" then
+        local size = random:NextNumber(2, 7)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = initial and random:NextNumber(0, height) or -size * 2
+        particle.VX = random:NextNumber(-6, 6)
+        particle.VY = random:NextNumber(18, 48)
+        frame.Size = UDim2.fromOffset(size, size)
+        frame.BackgroundTransparency = random:NextNumber(0.18, 0.62)
+    elseif preset == "Comets" then
+        local length = random:NextNumber(34, 82)
+        particle.X = initial and random:NextNumber(0, width) or width + length
+        particle.Y = initial and random:NextNumber(0, height) or -length * 0.5
+        particle.VX = random:NextNumber(-150, -88)
+        particle.VY = random:NextNumber(58, 102)
+        frame.Size = UDim2.fromOffset(length, random:NextNumber(1, 2.4))
+        frame.Rotation = -32
+        frame.BackgroundTransparency = random:NextNumber(0.32, 0.68)
+    elseif preset == "Stars" then
+        local size = random:NextNumber(1.5, 4.5)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = random:NextNumber(0, height)
+        particle.VX = random:NextNumber(-2, 2)
+        particle.VY = random:NextNumber(-1, 2)
+        frame.Size = UDim2.fromOffset(size, size)
+        frame.BackgroundTransparency = random:NextNumber(0.2, 0.64)
+    elseif preset == "Fireflies" then
+        local size = random:NextNumber(3, 7)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = random:NextNumber(0, height)
+        particle.VX = random:NextNumber(-6, 6)
+        particle.VY = random:NextNumber(-8, 4)
+        frame.Size = UDim2.fromOffset(size, size)
+        frame.BackgroundColor3 = color:Lerp(Color3.fromRGB(255, 239, 142), 0.45)
+        frame.BackgroundTransparency = random:NextNumber(0.3, 0.65)
+    elseif preset == "Rain" then
+        local length = random:NextNumber(12, 26)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = initial and random:NextNumber(0, height) or -length
+        particle.VX = random:NextNumber(-8, 8)
+        particle.VY = random:NextNumber(180, 320)
+        frame.Size = UDim2.fromOffset(random:NextNumber(1, 1.8), length)
+        frame.Rotation = 6
+        frame.BackgroundTransparency = random:NextNumber(0.48, 0.76)
+    elseif preset == "Bubbles" then
+        local size = random:NextNumber(6, 18)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = initial and random:NextNumber(0, height) or height + size
+        particle.VX = random:NextNumber(-8, 8)
+        particle.VY = random:NextNumber(-34, -15)
+        frame.Size = UDim2.fromOffset(size, size)
+        frame.BackgroundTransparency = 1
+        outline.Transparency = random:NextNumber(0.45, 0.75)
+    elseif preset == "Petals" then
+        local widthSize = random:NextNumber(5, 10)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = initial and random:NextNumber(0, height) or -12
+        particle.VX = random:NextNumber(-12, 12)
+        particle.VY = random:NextNumber(16, 38)
+        frame.Size = UDim2.fromOffset(widthSize, widthSize * 0.52)
+        frame.Rotation = random:NextNumber(-45, 45)
+        frame.BackgroundColor3 = color:Lerp(Color3.fromRGB(255, 184, 220), 0.28)
+        frame.BackgroundTransparency = random:NextNumber(0.28, 0.58)
+    elseif preset == "Embers" then
+        local size = random:NextNumber(2, 5)
+        particle.X = random:NextNumber(0, width)
+        particle.Y = initial and random:NextNumber(0, height) or height + 8
+        particle.VX = random:NextNumber(-10, 10)
+        particle.VY = random:NextNumber(-52, -24)
+        frame.Size = UDim2.fromOffset(size, size)
+        frame.BackgroundColor3 = color:Lerp(Color3.fromRGB(255, 151, 65), 0.36)
+        frame.BackgroundTransparency = random:NextNumber(0.24, 0.62)
+    else
+        self:_hideParticle(particle)
+        return
+    end
+    frame.Position = UDim2.fromOffset(particle.X, particle.Y)
+end
+
+function AnimationLayer:Set(settings)
+    if type(settings) == "string" then
+        settings = { Preset = settings, Enabled = settings ~= "Off" }
+    elseif type(settings) == "boolean" then
+        settings = { Preset = settings and "Stars" or "Off", Enabled = settings }
+    end
+    settings = settings or {}
+    local previousPreset = self.Preset
+    local previousEnabled = self.Enabled
+    if settings.Preset ~= nil and table.find(ANIMATION_PRESETS, settings.Preset) then
+        self.Preset = settings.Preset
+    end
+    if settings.Enabled ~= nil then
+        self.Enabled = settings.Enabled == true
+    elseif settings.Preset ~= nil then
+        self.Enabled = self.Preset ~= "Off"
+    end
+    if settings.Speed ~= nil then
+        self.Speed = math.clamp(tonumber(settings.Speed) or 1, 0.15, 3)
+    end
+    if settings.Density ~= nil then
+        self.Density = math.clamp(tonumber(settings.Density) or 0.55, 0.1, 1)
+    end
+    if typeof(settings.Color) == "Color3" then
+        self.Color = settings.Color
+    end
+    local shouldReset = previousPreset ~= self.Preset or (not previousEnabled and self.Enabled)
+    if not self.Enabled or self.Preset == "Off" or shouldReset then
+        for _, particle in ipairs(self.Particles) do
+            self:_hideParticle(particle)
+        end
+    elseif typeof(settings.Color) == "Color3" then
+        for _, particle in ipairs(self.Particles) do
+            if particle.Active then
+                particle.Frame.BackgroundColor3 = self.Preset == "Fireflies"
+                    and self.Color:Lerp(Color3.fromRGB(255, 239, 142), 0.45)
+                    or self.Color
+                particle.Outline.Color = self.Color
+            end
+        end
+    end
+    self.Frame.Visible = self.Active and self.Enabled and self.Preset ~= "Off"
+    return self
+end
+
+function AnimationLayer:SetActive(active)
+    self.Active = active == true
+    self.Frame.Visible = self.Active and self.Enabled and self.Preset ~= "Off"
+end
+
+function AnimationLayer:Step(delta)
+    if not self.Frame.Visible then
+        return
+    end
+    local width = self.Frame.AbsoluteSize.X
+    local height = self.Frame.AbsoluteSize.Y
+    if width <= 0 or height <= 0 then
+        return
+    end
+    local desired = math.max(1, math.floor(self.MaxParticles * self.Density + 0.5))
+    local step = math.min(delta, 1 / 20) * self.Speed
+    for index, particle in ipairs(self.Particles) do
+        if index > desired then
+            if particle.Active then
+                self:_hideParticle(particle)
+            end
+        else
+            if not particle.Active then
+                self:_spawnParticle(particle, width, height, true)
+            end
+            if particle.Active then
+                particle.Phase += step
+                local sway = math.sin(particle.Phase * 1.8) * particle.Drift
+                if self.Preset == "Snow"
+                    or self.Preset == "Fireflies"
+                    or self.Preset == "Bubbles"
+                    or self.Preset == "Petals"
+                    or self.Preset == "Embers" then
+                    particle.X += (particle.VX + sway * 0.16) * step
+                else
+                    particle.X += particle.VX * step
+                end
+                particle.Y += particle.VY * step
+                if self.Preset == "Stars" or self.Preset == "Fireflies" then
+                    particle.Frame.BackgroundTransparency = math.clamp(0.48 + math.sin(particle.Phase * 2.3) * 0.24, 0.12, 0.78)
+                end
+                local margin = 100
+                if particle.X < -margin or particle.X > width + margin or particle.Y < -margin or particle.Y > height + margin then
+                    self:_spawnParticle(particle, width, height, false)
+                else
+                    particle.Frame.Position = UDim2.fromOffset(particle.X, particle.Y)
+                end
+            end
+        end
+    end
+end
+
 local function isPointerButton(input)
     return input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch
@@ -1044,13 +1407,17 @@ function Northwind:CreateWindow(config)
         DisplayOrder = config.DisplayOrder or 50,
         Parent = screenParent,
     })
+    local screenAnimation = createAnimationLayer(screen, config.ScreenAnimation or {
+        Enabled = false,
+        Preset = "Off",
+    }, 56)
 
     local cornerRadius = config.CornerRadius or 18
     local main = create("Frame", {
         Name = "Main",
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = config.Position or UDim2.fromScale(0.57, 0.5),
-        Size = config.Size or UDim2.fromOffset(900, 580),
+        Size = config.Size or UDim2.fromOffset(960, 580),
         BackgroundColor3 = palette.Background,
         BackgroundTransparency = config.Transparency == nil and 0.06 or config.Transparency,
         BorderSizePixel = 0,
@@ -1064,6 +1431,10 @@ function Northwind:CreateWindow(config)
 
     local scale = create("UIScale", { Scale = 0.96, Parent = main })
     tween(scale, 0.28, { Scale = 1 }, Enum.EasingStyle.Back)
+    local backgroundAnimation = createAnimationLayer(main, config.BackgroundAnimation or {
+        Enabled = false,
+        Preset = "Off",
+    }, 34)
 
     local sidebar = create("Frame", {
         Name = "Sidebar",
@@ -1301,6 +1672,8 @@ function Northwind:CreateWindow(config)
         SubtabLabel = primarySubtab,
         TypeSubtabButton = secondarySubtab,
         HeaderUnderline = activeSubtab,
+        BackgroundAnimation = backgroundAnimation,
+        ScreenAnimation = screenAnimation,
         Tabs = {},
         Panels = {},
         Logo = config.Logo,
@@ -1326,6 +1699,10 @@ function Northwind:CreateWindow(config)
     end
     window:_initInputController()
     window:_bindDrag(brand, main)
+    window:_connect(RunService.RenderStepped, function(delta)
+        backgroundAnimation:Step(delta)
+        screenAnimation:Step(delta)
+    end)
 
     window:_connect(search:GetPropertyChangedSignal("Text"), function()
         local query = string.lower(search.Text)
@@ -1448,30 +1825,61 @@ function Window:_registerKeybind(handler)
 end
 
 function Window:SetVisible(visible, instant)
-    self.Visible = visible
+    self.Visible = visible == true
+    instant = instant or not self.Library.Motion.Enabled
+    local closeDuration = 0.16 / math.max(self.Library.Motion.Speed, 0.1)
     if visible then
         self.Main.Visible = true
+        self.ScreenAnimation:SetActive(true)
+        for _, panel in ipairs(self.Panels) do
+            if panel.FollowMenuVisibility and panel.Enabled ~= false then
+                panel.Frame.Visible = true
+            end
+        end
         if instant then
             self.Scale.Scale = 1
+            for _, panel in ipairs(self.Panels) do
+                if panel.FollowMenuVisibility and panel.Scale then
+                    panel.Scale.Scale = 1
+                end
+            end
         else
             self.Scale.Scale = 0.96
             tween(self.Scale, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+            for _, panel in ipairs(self.Panels) do
+                if panel.FollowMenuVisibility and panel.Scale then
+                    panel.Scale.Scale = 0.96
+                    tween(panel.Scale, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+                end
+            end
         end
     else
         if instant then
             self.Main.Visible = false
+            self.ScreenAnimation:SetActive(false)
+            for _, panel in ipairs(self.Panels) do
+                if panel.FollowMenuVisibility then
+                    panel.Frame.Visible = false
+                end
+            end
         else
             tween(self.Scale, 0.16, { Scale = 0.96 })
-            task.delay(0.16, function()
+            for _, panel in ipairs(self.Panels) do
+                if panel.FollowMenuVisibility and panel.Scale then
+                    tween(panel.Scale, 0.16, { Scale = 0.96 })
+                end
+            end
+            task.delay(closeDuration, function()
                 if not self.Visible and self.Main then
                     self.Main.Visible = false
+                    self.ScreenAnimation:SetActive(false)
+                    for _, panel in ipairs(self.Panels) do
+                        if panel.FollowMenuVisibility then
+                            panel.Frame.Visible = false
+                        end
+                    end
                 end
             end)
-        end
-    end
-    for _, panel in ipairs(self.Panels) do
-        if panel.FollowMenuVisibility then
-            panel.Frame.Visible = visible and panel.Enabled ~= false
         end
     end
 end
@@ -1495,6 +1903,18 @@ end
 
 function Window:SetMotion(enabled, speed)
     self.Library:SetMotion(enabled, speed)
+    return self
+end
+
+function Window:SetBackgroundAnimation(settings)
+    self.BackgroundAnimation:Set(settings)
+    self.BackgroundAnimation:SetActive(self.Visible)
+    return self
+end
+
+function Window:SetScreenAnimation(settings)
+    self.ScreenAnimation:Set(settings)
+    self.ScreenAnimation:SetActive(self.Visible)
     return self
 end
 
@@ -2010,7 +2430,7 @@ function Section:AddButton(config, callback)
     config = config or {}
     local palette = self.Library:_theme()
     local button = create("TextButton", {
-        Size = UDim2.new(1, 0, 0, 36),
+        Size = UDim2.new(1, 0, 0, 30),
         BackgroundColor3 = palette.SurfaceAlt,
         BorderSizePixel = 0,
         Text = config.Text or config.Name or "Button",
@@ -2020,15 +2440,15 @@ function Section:AddButton(config, callback)
         AutoButtonColor = false,
         Parent = self.Controls,
     })
-    round(button, 7)
+    round(button, 6)
     local buttonStroke = stroke(button, palette.Border, 0.68)
     self.Library:_bind(buttonStroke, "Color", "Border")
     self.Library:_bind(button, "TextColor3", "Text")
     addHover(button, "SurfaceAlt", "AccentSoft")
     button.MouseButton1Click:Connect(function()
-        tween(button, 0.08, { Size = UDim2.new(1, -4, 0, 34), Position = UDim2.fromOffset(2, 1) })
+        tween(button, 0.08, { Size = UDim2.new(1, -4, 0, 28), Position = UDim2.fromOffset(2, 1) })
         task.delay(0.08, function()
-            tween(button, 0.14, { Size = UDim2.new(1, 0, 0, 36), Position = UDim2.new() })
+            tween(button, 0.14, { Size = UDim2.new(1, 0, 0, 30), Position = UDim2.new() })
         end)
         safeCallback(config.Callback)
     end)
@@ -2043,7 +2463,7 @@ function Section:AddToggle(flag, config)
     config = config or {}
     flag = flag or config.Flag or config.Text or "Toggle"
     local palette = self.Library:_theme()
-    local row = self:_row(38, true)
+    local row = self:_row(34, true)
     local label = create("TextLabel", {
         Size = UDim2.new(1, -54, 1, 0),
         BackgroundTransparency = 1,
@@ -2058,7 +2478,7 @@ function Section:AddToggle(flag, config)
     local track = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.fromScale(1, 0.5),
-        Size = UDim2.fromOffset(43, 22),
+        Size = UDim2.fromOffset(40, 20),
         BackgroundColor3 = palette.SurfaceAlt,
         BackgroundTransparency = 0.05,
         BorderSizePixel = 0,
@@ -2067,19 +2487,19 @@ function Section:AddToggle(flag, config)
         Parent = row,
     })
     self.Library:_bind(track, "BackgroundColor3", "SurfaceAlt")
-    round(track, 11)
+    round(track, 10)
     local trackStroke = stroke(track, palette.Border, 0.72)
     self.Library:_bind(trackStroke, "Color", "Border")
     local knob = create("Frame", {
         AnchorPoint = Vector2.new(0, 0.5),
-        Position = UDim2.fromOffset(3, 11),
-        Size = UDim2.fromOffset(16, 16),
+        Position = UDim2.fromOffset(3, 10),
+        Size = UDim2.fromOffset(14, 14),
         BackgroundColor3 = palette.Text,
         BorderSizePixel = 0,
         Parent = track,
     })
     self.Library:_bind(knob, "BackgroundColor3", "Text")
-    round(knob, 8)
+    round(knob, 7)
     local knobStroke = stroke(knob, palette.Border, 0.72)
     self.Library:_bind(knobStroke, "Color", "Border")
 
@@ -2090,7 +2510,7 @@ function Section:AddToggle(flag, config)
             BackgroundColor3 = self.Value and Northwind:_theme().Accent or Northwind:_theme().SurfaceAlt,
         })
         tween(knob, 0.18, {
-            Position = self.Value and UDim2.fromOffset(24, 11) or UDim2.fromOffset(3, 11),
+            Position = self.Value and UDim2.fromOffset(23, 10) or UDim2.fromOffset(3, 10),
         })
         tween(knob, 0.18, {
             BackgroundColor3 = self.Value and Northwind:_theme().Text or Northwind:_theme().Muted,
@@ -2207,7 +2627,7 @@ function Section:AddInput(flag, config)
     config = config or {}
     flag = flag or config.Flag or config.Text or "Input"
     local palette = self.Library:_theme()
-    local row = self:_row(42, true)
+    local row = self:_row(36, true)
     local label = create("TextLabel", {
         Size = UDim2.new(0.42, -6, 1, 0),
         BackgroundTransparency = 1,
@@ -2221,7 +2641,7 @@ function Section:AddInput(flag, config)
     self.Library:_bind(label, "TextColor3", "Text")
     local box = create("TextBox", {
         Position = UDim2.new(0.42, 0, 0, 3),
-        Size = UDim2.new(0.58, 0, 1, -6),
+        Size = UDim2.new(0.58, 0, 0, 30),
         BackgroundColor3 = palette.SurfaceAlt,
         BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
@@ -2237,7 +2657,7 @@ function Section:AddInput(flag, config)
     self.Library:_bind(box, "BackgroundColor3", "SurfaceAlt")
     self.Library:_bind(box, "TextColor3", "Text")
     self.Library:_bind(box, "PlaceholderColor3", "Muted")
-    round(box, 7)
+    round(box, 6)
     local boxStroke = stroke(box, palette.Border, 0.72)
     self.Library:_bind(boxStroke, "Color", "Border")
     padding(box, 9, 9, 0, 0)
@@ -2270,9 +2690,9 @@ function Section:AddDropdown(flag, config)
     flag = flag or config.Flag or config.Text or "Dropdown"
     local values = config.Values or {}
     local palette = self.Library:_theme()
-    local row = self:_row(42, true)
+    local row = self:_row(36, true)
     local label = create("TextLabel", {
-        Size = UDim2.new(0.42, -6, 0, 42),
+        Size = UDim2.new(0.42, -6, 0, 36),
         BackgroundTransparency = 1,
         Text = config.Text or config.Name or flag,
         TextColor3 = palette.Text,
@@ -2284,7 +2704,7 @@ function Section:AddDropdown(flag, config)
     self.Library:_bind(label, "TextColor3", "Text")
     local button = create("TextButton", {
         Position = UDim2.new(0.42, 0, 0, 3),
-        Size = UDim2.new(0.58, 0, 0, 36),
+        Size = UDim2.new(0.58, 0, 0, 30),
         BackgroundColor3 = palette.SurfaceAlt,
         BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
@@ -2293,7 +2713,7 @@ function Section:AddDropdown(flag, config)
         Parent = row,
     })
     self.Library:_bind(button, "BackgroundColor3", "SurfaceAlt")
-    round(button, 7)
+    round(button, 6)
     local dropdownStroke = stroke(button, palette.Border, 0.72)
     self.Library:_bind(dropdownStroke, "Color", "Border")
     local valueText = create("TextLabel", {
@@ -2311,13 +2731,13 @@ function Section:AddDropdown(flag, config)
     local arrowHolder = create("Frame", {
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.fromScale(1, 0),
-        Size = UDim2.fromOffset(30, 36),
+        Size = UDim2.fromOffset(30, 30),
         BackgroundTransparency = 1,
         Parent = button,
     })
-    makeIcon(arrowHolder, "chevron-down", UDim2.fromOffset(8, 11), UDim2.fromOffset(14, 14), "Muted")
+    makeIcon(arrowHolder, "chevron-down", UDim2.fromOffset(8, 8), UDim2.fromOffset(14, 14), "Muted")
     local list = create("Frame", {
-        Position = UDim2.new(0.42, 0, 0, 43),
+        Position = UDim2.new(0.42, 0, 0, 37),
         Size = UDim2.new(0.58, 0, 0, 0),
         BackgroundColor3 = palette.SurfaceAlt,
         BackgroundTransparency = 0.04,
@@ -2327,7 +2747,7 @@ function Section:AddDropdown(flag, config)
         Parent = row,
     })
     self.Library:_bind(list, "BackgroundColor3", "SurfaceAlt")
-    round(list, 7)
+    round(list, 6)
     local listStroke = stroke(list, palette.Border, 0.58)
     self.Library:_bind(listStroke, "Color", "Border")
     local listLayout = create("UIListLayout", {
@@ -2340,9 +2760,9 @@ function Section:AddDropdown(flag, config)
     local function setOpen(value)
         open = value
         list.Visible = true
-        local targetHeight = value and math.min(#values * 30, 150) or 0
+        local targetHeight = value and math.min(#values * 26, 130) or 0
         tween(list, 0.18, { Size = UDim2.new(0.58, 0, 0, targetHeight) })
-        tween(row, 0.18, { Size = UDim2.new(1, 0, 0, value and (48 + targetHeight) or 42) })
+        tween(row, 0.18, { Size = UDim2.new(1, 0, 0, value and (43 + targetHeight) or 36) })
         tween(arrowHolder, 0.18, { Rotation = value and 180 or 0 })
         tween(dropdownStroke, 0.18, {
             Transparency = value and 0.18 or 0.72,
@@ -2374,7 +2794,7 @@ function Section:AddDropdown(flag, config)
     function option:_build()
         for index, value in ipairs(values) do
             local item = create("TextButton", {
-                Size = UDim2.new(1, 0, 0, 30),
+                Size = UDim2.new(1, 0, 0, 26),
                 BackgroundTransparency = 1,
                 Text = "  " .. tostring(value),
                 TextColor3 = Northwind:_theme().Muted,
@@ -2412,7 +2832,7 @@ function Section:AddKeybind(flag, config)
     config = config or {}
     flag = flag or config.Flag or config.Text or "Keybind"
     local palette = self.Library:_theme()
-    local row = self:_row(40, true)
+    local row = self:_row(36, true)
     local label = create("TextLabel", {
         Size = UDim2.new(1, -118, 1, 0),
         BackgroundTransparency = 1,
@@ -2427,7 +2847,7 @@ function Section:AddKeybind(flag, config)
     local button = create("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.fromScale(1, 0.5),
-        Size = UDim2.fromOffset(108, 32),
+        Size = UDim2.fromOffset(108, 28),
         BackgroundColor3 = palette.SurfaceAlt,
         BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
@@ -2440,7 +2860,7 @@ function Section:AddKeybind(flag, config)
     })
     self.Library:_bind(button, "BackgroundColor3", "SurfaceAlt")
     self.Library:_bind(button, "TextColor3", "Text")
-    round(button, 7)
+    round(button, 6)
     local keyStroke = stroke(button, palette.Border, 0.72)
     self.Library:_bind(keyStroke, "Color", "Border")
 
@@ -2480,6 +2900,7 @@ function Section:AddColorPicker(flag, config)
         flag = config.Flag
     end
     config = config or {}
+    flag = flag or config.Flag or config.Text or "Color"
     local colors = config.Colors or {
         Color3.fromRGB(124, 138, 255),
         Color3.fromRGB(180, 120, 255),
@@ -2487,29 +2908,167 @@ function Section:AddColorPicker(flag, config)
         Color3.fromRGB(90, 202, 255),
         Color3.fromRGB(96, 220, 159),
         Color3.fromRGB(255, 173, 91),
+        Color3.fromRGB(255, 104, 121),
+        Color3.fromRGB(238, 241, 250),
+        Color3.fromRGB(151, 158, 187),
+        Color3.fromRGB(48, 54, 82),
+        Color3.fromRGB(24, 28, 46),
+        Color3.fromRGB(10, 12, 23),
     }
-    local names = config.Names or { "Periwinkle", "Violet", "Rose", "Sky", "Mint", "Amber" }
-    local dropdownValues = {}
-    for index, name in ipairs(names) do
-        dropdownValues[index] = name
+    local defaultColor = config.Default
+    if type(defaultColor) == "string" then
+        defaultColor = hexToColor(defaultColor)
     end
-    local defaultIndex = 1
-    for index, color in ipairs(colors) do
-        if color == config.Default then
-            defaultIndex = index
+    if typeof(defaultColor) ~= "Color3" then
+        defaultColor = colors[1]
+    end
+    local palette = self.Library:_theme()
+    local row = self:_row(36, true)
+    local label = create("TextLabel", {
+        Size = UDim2.new(0.42, -6, 0, 36),
+        BackgroundTransparency = 1,
+        Text = config.Text or config.Name or flag,
+        TextColor3 = palette.Text,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+    self.Library:_bind(label, "TextColor3", "Text")
+
+    local control = create("Frame", {
+        Position = UDim2.new(0.42, 0, 0, 3),
+        Size = UDim2.new(0.58, 0, 0, 30),
+        BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.08,
+        BorderSizePixel = 0,
+        Parent = row,
+    })
+    self.Library:_bind(control, "BackgroundColor3", "SurfaceAlt")
+    round(control, 6)
+    local controlStroke = stroke(control, palette.Border, 0.72)
+    self.Library:_bind(controlStroke, "Color", "Border")
+
+    local swatch = create("TextButton", {
+        Position = UDim2.fromOffset(6, 6),
+        Size = UDim2.fromOffset(18, 18),
+        BackgroundColor3 = defaultColor,
+        BorderSizePixel = 0,
+        Text = "",
+        AutoButtonColor = false,
+        Parent = control,
+    })
+    round(swatch, 5)
+    stroke(swatch, Color3.fromRGB(255, 255, 255), 0.74)
+
+    local hexBox = create("TextBox", {
+        Position = UDim2.fromOffset(31, 0),
+        Size = UDim2.new(1, -64, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Text = colorToHex(defaultColor),
+        TextColor3 = palette.Muted,
+        PlaceholderColor3 = palette.Muted,
+        TextSize = 10,
+        ClearTextOnFocus = false,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = control,
+    })
+    self.Library:_bind(hexBox, "TextColor3", "Muted")
+    self.Library:_bind(hexBox, "PlaceholderColor3", "Muted")
+
+    local paletteButton = create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.fromScale(1, 0),
+        Size = UDim2.fromOffset(31, 30),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Text = "",
+        AutoButtonColor = false,
+        Parent = control,
+    })
+    makeIcon(paletteButton, "palette", UDim2.fromOffset(7, 6), UDim2.fromOffset(18, 18), "Muted")
+
+    local popup = create("Frame", {
+        Position = UDim2.new(0.42, 0, 0, 37),
+        Size = UDim2.new(0.58, 0, 0, 0),
+        BackgroundColor3 = palette.SurfaceAlt,
+        BackgroundTransparency = 0.03,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Visible = false,
+        Parent = row,
+    })
+    self.Library:_bind(popup, "BackgroundColor3", "SurfaceAlt")
+    round(popup, 6)
+    local popupStroke = stroke(popup, palette.Border, 0.56)
+    self.Library:_bind(popupStroke, "Color", "Border")
+
+    local option = newOption(flag, defaultColor, config.Callback)
+    local open = false
+    local function setOpen(value)
+        open = value == true
+        popup.Visible = true
+        tween(popup, 0.18, { Size = UDim2.new(0.58, 0, 0, open and 78 or 0) })
+        tween(row, 0.18, { Size = UDim2.new(1, 0, 0, open and 121 or 36) })
+        tween(controlStroke, 0.18, {
+            Transparency = open and 0.2 or 0.72,
+            Color = open and Northwind:_theme().Accent or Northwind:_theme().Border,
+        })
+        if not open then
+            task.delay(0.18, function()
+                if not open then
+                    popup.Visible = false
+                end
+            end)
         end
     end
-    local option = self:AddDropdown(flag, {
-        Text = config.Text or "Accent",
-        Values = dropdownValues,
-        Default = names[defaultIndex],
-        Callback = function(name)
-            local index = table.find(names, name) or 1
-            safeCallback(config.Callback, colors[index])
-        end,
-    })
+    function option:SetValue(value, silent)
+        if type(value) == "string" then
+            value = hexToColor(value)
+        end
+        if typeof(value) ~= "Color3" then
+            return
+        end
+        self.Value = value
+        swatch.BackgroundColor3 = value
+        hexBox.Text = colorToHex(value)
+        self:_emit(silent)
+    end
+    for index, color in ipairs(colors) do
+        local column = (index - 1) % 5
+        local rowIndex = math.floor((index - 1) / 5)
+        local choice = create("TextButton", {
+            Position = UDim2.fromOffset(8 + column * 25, 7 + rowIndex * 24),
+            Size = UDim2.fromOffset(18, 18),
+            BackgroundColor3 = color,
+            BorderSizePixel = 0,
+            Text = "",
+            AutoButtonColor = false,
+            Parent = popup,
+        })
+        round(choice, 5)
+        stroke(choice, Color3.fromRGB(255, 255, 255), 0.78)
+        choice.MouseButton1Click:Connect(function()
+            option:SetValue(color)
+            setOpen(false)
+        end)
+    end
+    swatch.MouseButton1Click:Connect(function()
+        setOpen(not open)
+    end)
+    paletteButton.MouseButton1Click:Connect(function()
+        setOpen(not open)
+    end)
+    hexBox.FocusLost:Connect(function()
+        local color = hexToColor(hexBox.Text)
+        if color then
+            option:SetValue(color)
+        else
+            hexBox.Text = colorToHex(option.Value)
+        end
+    end)
     option.ColorValues = colors
-    option.ColorNames = names
+    option:SetValue(option.Value, true)
     return option
 end
 
@@ -2754,6 +3313,7 @@ function Window:CreateStatusBar(config)
     end
     local panel = setmetatable({
         Frame = frame,
+        Scale = statusScale,
         Window = self,
         Rows = {},
         FollowMenuVisibility = followVisibility,
@@ -2819,6 +3379,7 @@ function Window:CreatePanel(config)
     self:_bindDrag(titleRow, frame)
     local panel = setmetatable({
         Frame = frame,
+        Scale = panelScale,
         Window = self,
         Layout = layout,
         Rows = {},
@@ -3322,6 +3883,7 @@ function Window:CreateESPPreview(config)
     local preview = setmetatable({
         Window = self,
         Frame = frame,
+        Scale = previewScale,
         Viewport = viewport,
         WorldModel = worldModel,
         Camera = camera,
@@ -3442,27 +4004,43 @@ function Window:_createSettingsTab()
 
     local themeSection = settings:AddSection({
         Name = "Theme",
-        Description = "Smooth live color updates",
+        Description = "Every surface is live",
         Icon = "palette",
         Side = "Left",
     })
+    local themePickers = {}
     local themeOption = themeSection:AddDropdown("Northwind_Theme", {
         Text = "Preset",
         Values = { "Midnight", "Obsidian", "Nord" },
         Default = self.Library.ActiveTheme,
         Callback = function(value)
             self.Library:SetTheme(value)
+            local current = self.Library:_theme()
+            for token, picker in pairs(themePickers) do
+                picker:SetValue(current[token], true)
+            end
         end,
     })
     themeOption.Save = false
-    local accentOption = themeSection:AddColorPicker("Northwind_Accent", {
-        Text = "Accent color",
-        Default = self.Library:_theme().Accent,
-        Callback = function(value)
-            self.Library:SetAccent(value)
-        end,
-    })
-    accentOption.Save = false
+    local function addThemePicker(flag, text, token)
+        local picker = themeSection:AddColorPicker(flag, {
+            Text = text,
+            Default = self.Library:_theme()[token],
+            Callback = function(value)
+                self.Library:SetThemeColor(token, value)
+            end,
+        })
+        picker.Save = false
+        themePickers[token] = picker
+    end
+    addThemePicker("Northwind_Accent", "Accent", "Accent")
+    addThemePicker("Northwind_Background", "Background", "Background")
+    addThemePicker("Northwind_Sidebar", "Sidebar", "Sidebar")
+    addThemePicker("Northwind_Cards", "Cards", "Surface")
+    addThemePicker("Northwind_Inputs", "Inputs", "SurfaceAlt")
+    addThemePicker("Northwind_Border", "Borders", "Border")
+    addThemePicker("Northwind_Text", "Text", "Text")
+    addThemePicker("Northwind_Muted", "Muted text", "Muted")
 
     local configSection = settings:AddSection({
         Name = "Configs",
@@ -3533,6 +4111,89 @@ function Window:_createSettingsTab()
     configSection:AddLabel("Configs persist when a storage provider is attached. Without one, they last for the current session.")
     refreshConfigList("default")
 
+    local function addAnimationSettings(name, description, icon, side, prefix, layer, apply)
+        local section = settings:AddSection({
+            Name = name,
+            Description = description,
+            Icon = icon,
+            Side = side,
+        })
+        local enabledOption
+        enabledOption = section:AddToggle(prefix .. "Enabled", {
+            Text = "Enable animation",
+            Default = layer.Enabled,
+            Callback = function(value)
+                apply({ Enabled = value })
+            end,
+        })
+        local presetOption = section:AddDropdown(prefix .. "Preset", {
+            Text = "Style",
+            Values = ANIMATION_PRESETS,
+            Default = layer.Preset,
+            Callback = function(value)
+                local enabled = value ~= "Off"
+                enabledOption:SetValue(enabled, true)
+                apply({ Preset = value, Enabled = enabled })
+            end,
+        })
+        local colorOption = section:AddColorPicker(prefix .. "Color", {
+            Text = "Particle color",
+            Default = layer.Color,
+            Callback = function(value)
+                apply({ Color = value })
+            end,
+        })
+        local speedOption = section:AddSlider(prefix .. "Speed", {
+            Text = "Speed",
+            Min = 15,
+            Max = 300,
+            Default = math.floor(layer.Speed * 100 + 0.5),
+            Suffix = "%",
+            Callback = function(value)
+                apply({ Speed = value / 100 })
+            end,
+        })
+        local densityOption = section:AddSlider(prefix .. "Density", {
+            Text = "Density",
+            Min = 10,
+            Max = 100,
+            Default = math.floor(layer.Density * 100 + 0.5),
+            Suffix = "%",
+            Callback = function(value)
+                apply({ Density = value / 100 })
+            end,
+        })
+        enabledOption.Save = false
+        presetOption.Save = false
+        colorOption.Save = false
+        speedOption.Save = false
+        densityOption.Save = false
+        section:AddLabel("Uses a fixed particle pool and one shared frame update for smooth performance.")
+    end
+
+    addAnimationSettings(
+        "Menu backdrop",
+        "Stays behind every control",
+        "layers",
+        "Left",
+        "Northwind_MenuAnimation",
+        self.BackgroundAnimation,
+        function(settings)
+            self:SetBackgroundAnimation(settings)
+        end
+    )
+    addAnimationSettings(
+        "Screen effects",
+        "Atmosphere behind the interface",
+        "comet",
+        "Right",
+        "Northwind_ScreenAnimation",
+        self.ScreenAnimation,
+        function(settings)
+            self:SetScreenAnimation(settings)
+        end
+    )
+
     local typePage = settings:AddSubPage("Type")
     settings.TypePage = typePage
     local gradientSection = typePage:AddSection({
@@ -3548,26 +4209,18 @@ function Window:_createSettingsTab()
             self.Library:SetTextGradient(nil, nil, nil, value)
         end,
     })
-    local startInput = gradientSection:AddInput("Northwind_TextGradientStart", {
+    local startInput = gradientSection:AddColorPicker("Northwind_TextGradientStart", {
         Text = "Start color",
-        Default = colorToHex(self.Library.TextGradient.Start),
-        Placeholder = "#F5F7FF",
+        Default = self.Library.TextGradient.Start,
         Callback = function(value)
-            local color = hexToColor(value)
-            if color then
-                self.Library:SetTextGradient(color)
-            end
+            self.Library:SetTextGradient(value)
         end,
     })
-    local finishInput = gradientSection:AddInput("Northwind_TextGradientFinish", {
+    local finishInput = gradientSection:AddColorPicker("Northwind_TextGradientFinish", {
         Text = "End color",
-        Default = colorToHex(self.Library.TextGradient.Finish),
-        Placeholder = "#A8B0FF",
+        Default = self.Library.TextGradient.Finish,
         Callback = function(value)
-            local color = hexToColor(value)
-            if color then
-                self.Library:SetTextGradient(nil, color)
-            end
+            self.Library:SetTextGradient(nil, value)
         end,
     })
     local directionOption = gradientSection:AddDropdown("Northwind_TextGradientDirection", {
@@ -3620,26 +4273,18 @@ function Window:_createSettingsTab()
             self.Library:SetBrandGradient({ Speed = value / 100 })
         end,
     })
-    local brandStart = brandSection:AddInput("Northwind_BrandGradientStart", {
+    local brandStart = brandSection:AddColorPicker("Northwind_BrandGradientStart", {
         Text = "Start color",
-        Default = colorToHex(self.Library.BrandGradient.Start),
-        Placeholder = "#F8F9FF",
+        Default = self.Library.BrandGradient.Start,
         Callback = function(value)
-            local color = hexToColor(value)
-            if color then
-                self.Library:SetBrandGradient({ Start = color })
-            end
+            self.Library:SetBrandGradient({ Start = value })
         end,
     })
-    local brandFinish = brandSection:AddInput("Northwind_BrandGradientFinish", {
+    local brandFinish = brandSection:AddColorPicker("Northwind_BrandGradientFinish", {
         Text = "End color",
-        Default = colorToHex(self.Library.BrandGradient.Finish),
-        Placeholder = "#7C8AFF",
+        Default = self.Library.BrandGradient.Finish,
         Callback = function(value)
-            local color = hexToColor(value)
-            if color then
-                self.Library:SetBrandGradient({ Finish = color })
-            end
+            self.Library:SetBrandGradient({ Finish = value })
         end,
     })
     brandEnabled.Save = false
