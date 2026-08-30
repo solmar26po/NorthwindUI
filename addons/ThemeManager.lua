@@ -39,6 +39,24 @@ function ThemeManager:SetTextGradient(startColor, finishColor, rotation, enabled
     return self
 end
 
+function ThemeManager:SetBrandGradient(settings)
+    assert(self.Library, "Call ThemeManager:SetLibrary first")
+    self.Library:SetBrandGradient(settings)
+    return self
+end
+
+function ThemeManager:SetTypography(preset)
+    assert(self.Library, "Call ThemeManager:SetLibrary first")
+    self.Library:SetTypography(preset)
+    return self
+end
+
+function ThemeManager:SetMotion(enabled, speed)
+    assert(self.Library, "Call ThemeManager:SetLibrary first")
+    self.Library:SetMotion(enabled, speed)
+    return self
+end
+
 function ThemeManager:GetThemes()
     assert(self.Library, "Call ThemeManager:SetLibrary first")
     local names = {}
