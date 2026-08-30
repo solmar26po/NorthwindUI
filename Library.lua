@@ -12,18 +12,51 @@ local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 
+local FONT_PRESETS = {
+    ["Builder Sans"] = {
+        Regular = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+        Medium = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Medium, Enum.FontStyle.Normal),
+        Bold = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
+    },
+    Gotham = {
+        Regular = Font.fromEnum(Enum.Font.Gotham),
+        Medium = Font.fromEnum(Enum.Font.GothamMedium),
+        Bold = Font.fromEnum(Enum.Font.GothamBold),
+    },
+    ["Source Sans"] = {
+        Regular = Font.fromEnum(Enum.Font.SourceSans),
+        Medium = Font.fromEnum(Enum.Font.SourceSansSemibold),
+        Bold = Font.fromEnum(Enum.Font.SourceSansBold),
+    },
+}
+
 local Northwind = {
-    Version = "1.3.0",
+    Version = "1.4.0",
     Flags = {},
     Options = {},
     Windows = {},
     Configs = {},
     ActiveTheme = "Midnight",
-    TextGradient = {
+    TypographyPreset = "Builder Sans",
+    Typography = table.clone(FONT_PRESETS["Builder Sans"]),
+    Motion = {
         Enabled = true,
+        Speed = 1,
+    },
+    TextGradient = {
+        Enabled = false,
         Start = Color3.fromRGB(245, 247, 255),
         Finish = Color3.fromRGB(168, 176, 255),
         Rotation = 18,
+    },
+    BrandGradient = {
+        Enabled = true,
+        Animated = true,
+        Start = Color3.fromRGB(248, 249, 255),
+        Finish = Color3.fromRGB(124, 138, 255),
+        Rotation = 0,
+        Speed = 0.45,
+        ApplyToFPS = true,
     },
     Themes = {
         Midnight = {
@@ -67,22 +100,41 @@ local Northwind = {
         },
     },
     _themeBindings = {},
+    _fontBindings = {},
+    _textGradientTargets = {},
     _textGradients = {},
+    _brandGradients = {},
+    _brandGradientConnection = nil,
+    _brandPhase = 0,
+    _activeTweens = setmetatable({}, { __mode = "k" }),
     _configProvider = nil,
 }
 
 local function create(className, properties)
     local instance = Instance.new(className)
     for property, value in pairs(properties or {}) do
-        if property ~= "Parent" and property ~= "NoGradient" then
+        if property ~= "Parent" and property ~= "NoGradient" and property ~= "FontRole" then
             instance[property] = value
         end
     end
+
+    local isTextObject = className == "TextLabel" or className == "TextButton" or className == "TextBox"
+    if isTextObject and Northwind._bindFont then
+        local role = properties and properties.FontRole
+        local legacyFont = properties and properties.Font
+        if not role and legacyFont == Enum.Font.GothamBold then
+            role = "Bold"
+        elseif not role and legacyFont == Enum.Font.GothamMedium then
+            role = "Medium"
+        end
+        Northwind:_bindFont(instance, role or "Regular")
+    end
+
     instance.Parent = properties and properties.Parent or nil
     if className == "TextLabel"
         and not (properties and properties.NoGradient)
-        and Northwind._attachTextGradient then
-        Northwind:_attachTextGradient(instance)
+        and Northwind._registerTextGradientTarget then
+        Northwind:_registerTextGradientTarget(instance)
     end
     return instance
 end
@@ -116,12 +168,48 @@ local function padding(parent, left, right, top, bottom)
 end
 
 local function tween(instance, duration, properties, style, direction)
+    if not instance or not instance.Parent then
+        return nil
+    end
+
+    local motion = Northwind.Motion
+    if not motion.Enabled then
+        for property, value in pairs(properties) do
+            instance[property] = value
+        end
+        return nil
+    end
+
+    local propertyNames = {}
+    for property in pairs(properties) do
+        table.insert(propertyNames, property)
+    end
+    table.sort(propertyNames)
+    local key = table.concat(propertyNames, "|")
+    local active = Northwind._activeTweens[instance]
+    if not active then
+        active = {}
+        Northwind._activeTweens[instance] = active
+    elseif active[key] then
+        active[key]:Cancel()
+    end
+
     local info = TweenInfo.new(
-        duration or 0.18,
+        (duration or 0.18) / math.max(motion.Speed, 0.1),
         style or Enum.EasingStyle.Quint,
         direction or Enum.EasingDirection.Out
     )
     local animation = TweenService:Create(instance, info, properties)
+    active[key] = animation
+    local completedConnection
+    completedConnection = animation.Completed:Connect(function()
+        if completedConnection then
+            completedConnection:Disconnect()
+        end
+        if active[key] == animation then
+            active[key] = nil
+        end
+    end)
     animation:Play()
     return animation
 end
@@ -395,7 +483,65 @@ function Northwind:_theme()
     return self.Themes[self.ActiveTheme] or self.Themes.Midnight
 end
 
+local function applyFont(instance, font)
+    if typeof(font) == "Font" then
+        instance.FontFace = font
+    elseif typeof(font) == "EnumItem" then
+        instance.Font = font
+    end
+end
+
+function Northwind:_bindFont(instance, role)
+    role = role or "Regular"
+    applyFont(instance, self.Typography[role] or self.Typography.Regular)
+    table.insert(self._fontBindings, {
+        Instance = instance,
+        Role = role,
+    })
+end
+
+function Northwind:SetTypography(preset)
+    if type(preset) == "string" then
+        assert(FONT_PRESETS[preset], "Unknown Northwind font preset: " .. preset)
+        self.TypographyPreset = preset
+        self.Typography = table.clone(FONT_PRESETS[preset])
+    elseif type(preset) == "table" then
+        local custom = table.clone(self.Typography)
+        for role, font in pairs(preset) do
+            if role == "Regular" or role == "Medium" or role == "Bold" then
+                custom[role] = font
+            end
+        end
+        self.TypographyPreset = "Custom"
+        self.Typography = custom
+    else
+        return
+    end
+
+    for index = #self._fontBindings, 1, -1 do
+        local binding = self._fontBindings[index]
+        if not binding.Instance or not binding.Instance.Parent then
+            table.remove(self._fontBindings, index)
+        else
+            applyFont(binding.Instance, self.Typography[binding.Role] or self.Typography.Regular)
+        end
+    end
+end
+
+function Northwind:SetMotion(enabled, speed)
+    if enabled ~= nil then
+        self.Motion.Enabled = enabled == true
+    end
+    if speed ~= nil then
+        self.Motion.Speed = math.clamp(tonumber(speed) or self.Motion.Speed, 0.25, 3)
+    end
+end
+
 function Northwind:_attachTextGradient(instance)
+    local existing = instance:FindFirstChild("NorthwindTextGradient")
+    if existing then
+        return existing
+    end
     local settings = self.TextGradient
     local gradient = create("UIGradient", {
         Name = "NorthwindTextGradient",
@@ -406,6 +552,13 @@ function Northwind:_attachTextGradient(instance)
     })
     table.insert(self._textGradients, gradient)
     return gradient
+end
+
+function Northwind:_registerTextGradientTarget(instance)
+    table.insert(self._textGradientTargets, instance)
+    if self.TextGradient.Enabled then
+        self:_attachTextGradient(instance)
+    end
 end
 
 function Northwind:SetTextGradient(startColor, finishColor, rotation, enabled)
@@ -423,18 +576,118 @@ function Northwind:SetTextGradient(startColor, finishColor, rotation, enabled)
         settings.Enabled = enabled == true
     end
 
-    for index = #self._textGradients, 1, -1 do
-        local gradient = self._textGradients[index]
-        if not gradient or not gradient.Parent then
-            table.remove(self._textGradients, index)
+    for index = #self._textGradientTargets, 1, -1 do
+        local target = self._textGradientTargets[index]
+        if not target or not target.Parent then
+            table.remove(self._textGradientTargets, index)
         else
-            gradient.Enabled = settings.Enabled
-            gradient.Color = ColorSequence.new(settings.Start, settings.Finish)
-            gradient.Rotation = settings.Rotation
-            gradient.Offset = Vector2.new(-0.08, 0)
-            tween(gradient, 0.22, { Offset = Vector2.new(0, 0) })
+            local gradient = target:FindFirstChild("NorthwindTextGradient")
+            if settings.Enabled and not gradient then
+                gradient = self:_attachTextGradient(target)
+            end
+            if gradient then
+                gradient.Enabled = settings.Enabled
+                gradient.Color = ColorSequence.new(settings.Start, settings.Finish)
+                gradient.Rotation = settings.Rotation
+                gradient.Offset = Vector2.new(-0.08, 0)
+                tween(gradient, 0.22, { Offset = Vector2.new(0, 0) })
+            end
         end
     end
+end
+
+local function brandGradientSequence(settings)
+    return ColorSequence.new({
+        ColorSequenceKeypoint.new(0, settings.Start),
+        ColorSequenceKeypoint.new(0.48, settings.Finish),
+        ColorSequenceKeypoint.new(1, settings.Start),
+    })
+end
+
+function Northwind:_refreshBrandGradients()
+    local settings = self.BrandGradient
+    local sequence = brandGradientSequence(settings)
+    for index = #self._brandGradients, 1, -1 do
+        local binding = self._brandGradients[index]
+        local gradient = binding.Gradient
+        if not gradient or not gradient.Parent then
+            table.remove(self._brandGradients, index)
+        else
+            local enabled = settings.Enabled and (binding.Role ~= "FPS" or settings.ApplyToFPS)
+            gradient.Enabled = enabled
+            gradient.Color = sequence
+            gradient.Rotation = settings.Rotation
+            if not settings.Animated then
+                gradient.Offset = Vector2.new(0, 0)
+            end
+        end
+    end
+end
+
+function Northwind:_ensureBrandGradientAnimator()
+    if self._brandGradientConnection and self._brandGradientConnection.Connected then
+        return
+    end
+    if #self.Windows == 0 and #self._brandGradients == 0 then
+        return
+    end
+    self._brandGradientConnection = RunService.RenderStepped:Connect(function(delta)
+        local settings = self.BrandGradient
+        if not settings.Enabled or not settings.Animated then
+            return
+        end
+        self._brandPhase = (self._brandPhase + delta * settings.Speed) % 2
+        local phase = self._brandPhase
+        local offset = phase <= 1 and (-1 + phase * 2) or (3 - phase * 2)
+        for index = #self._brandGradients, 1, -1 do
+            local binding = self._brandGradients[index]
+            local gradient = binding.Gradient
+            if not gradient or not gradient.Parent then
+                table.remove(self._brandGradients, index)
+            elseif gradient.Enabled then
+                gradient.Offset = Vector2.new(offset, 0)
+            end
+        end
+    end)
+end
+
+function Northwind:_attachBrandGradient(instance, role)
+    local gradient = create("UIGradient", {
+        Name = "NorthwindBrandGradient",
+        Color = brandGradientSequence(self.BrandGradient),
+        Rotation = self.BrandGradient.Rotation,
+        Enabled = true,
+        Parent = instance,
+    })
+    table.insert(self._brandGradients, {
+        Gradient = gradient,
+        Role = role or "Brand",
+    })
+    self:_refreshBrandGradients()
+    self:_ensureBrandGradientAnimator()
+    return gradient
+end
+
+function Northwind:SetBrandGradient(settings)
+    if type(settings) == "boolean" then
+        self.BrandGradient.Enabled = settings
+    elseif type(settings) == "table" then
+        for key, value in pairs(settings) do
+            if key == "Enabled" or key == "Animated" or key == "ApplyToFPS" then
+                self.BrandGradient[key] = value == true
+            elseif key == "Start" or key == "Finish" then
+                if typeof(value) == "Color3" then
+                    self.BrandGradient[key] = value
+                end
+            elseif key == "Rotation" then
+                self.BrandGradient.Rotation = tonumber(value) or self.BrandGradient.Rotation
+            elseif key == "Speed" then
+                self.BrandGradient.Speed = math.clamp(tonumber(value) or self.BrandGradient.Speed, 0.05, 2)
+            end
+        end
+    end
+    self:_refreshBrandGradients()
+    self:_ensureBrandGradientAnimator()
 end
 
 function Northwind:_bind(instance, property, token)
@@ -526,6 +779,20 @@ function Northwind:GetConfigData()
             finish = colorToTable(self.TextGradient.Finish),
             rotation = self.TextGradient.Rotation,
         },
+        brandGradient = {
+            enabled = self.BrandGradient.Enabled,
+            animated = self.BrandGradient.Animated,
+            start = colorToTable(self.BrandGradient.Start),
+            finish = colorToTable(self.BrandGradient.Finish),
+            rotation = self.BrandGradient.Rotation,
+            speed = self.BrandGradient.Speed,
+            applyToFPS = self.BrandGradient.ApplyToFPS,
+        },
+        typography = self.TypographyPreset,
+        motion = {
+            enabled = self.Motion.Enabled,
+            speed = self.Motion.Speed,
+        },
         values = values,
     }
 end
@@ -558,6 +825,23 @@ function Northwind:ImportConfig(data)
             data.textGradient.rotation,
             data.textGradient.enabled
         )
+    end
+    if data.brandGradient then
+        self:SetBrandGradient({
+            Enabled = data.brandGradient.enabled,
+            Animated = data.brandGradient.animated,
+            Start = tableToColor(data.brandGradient.start or {}),
+            Finish = tableToColor(data.brandGradient.finish or {}),
+            Rotation = data.brandGradient.rotation,
+            Speed = data.brandGradient.speed,
+            ApplyToFPS = data.brandGradient.applyToFPS,
+        })
+    end
+    if data.typography and FONT_PRESETS[data.typography] then
+        self:SetTypography(data.typography)
+    end
+    if data.motion then
+        self:SetMotion(data.motion.enabled, data.motion.speed)
     end
     for flag, value in pairs(data.values or {}) do
         local option = self.Options[flag]
@@ -663,6 +947,22 @@ local function addHover(button, normalToken, hoverToken)
     end)
 end
 
+local function addSurfaceMotion(frame, outline, restingTransparency, hoverTransparency, outlineTransparency)
+    frame.Active = true
+    frame.MouseEnter:Connect(function()
+        tween(frame, 0.2, { BackgroundTransparency = hoverTransparency })
+        if outline then
+            tween(outline, 0.2, { Transparency = 0.28 })
+        end
+    end)
+    frame.MouseLeave:Connect(function()
+        tween(frame, 0.2, { BackgroundTransparency = restingTransparency })
+        if outline then
+            tween(outline, 0.2, { Transparency = outlineTransparency or 0.52 })
+        end
+    end)
+end
+
 local function isPointerButton(input)
     return input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch
@@ -685,6 +985,20 @@ end
 
 function Northwind:CreateWindow(config)
     config = config or {}
+    if config.FontPreset then
+        self:SetTypography(config.FontPreset)
+    end
+    if config.Typography then
+        self:SetTypography(config.Typography)
+    end
+    if type(config.Motion) == "table" then
+        self:SetMotion(config.Motion.Enabled, config.Motion.Speed)
+    elseif config.Motion ~= nil then
+        self:SetMotion(config.Motion)
+    end
+    if config.BrandGradient ~= nil then
+        self:SetBrandGradient(config.BrandGradient)
+    end
     local palette = self:_theme()
     local screenParent = resolveParent(config)
     local screenName = config.Name or "NorthwindUI"
@@ -767,46 +1081,54 @@ function Northwind:CreateWindow(config)
     self:_bind(sidebarLine, "BackgroundColor3", "Border")
 
     local hasCustomLogo = type(config.Logo) == "string" and config.Logo ~= ""
+    local logoStyle = config.LogoStyle or (hasCustomLogo and "Image" or "Monogram")
+    hasCustomLogo = hasCustomLogo and logoStyle == "Image"
+    local logoSize = math.clamp(tonumber(config.LogoSize) or 36, 24, 44)
+    local logoInset = math.clamp(tonumber(config.LogoInset) or 0, 0, 10)
     local brandMark = create("Frame", {
-        Position = UDim2.fromOffset(18, 15),
-        Size = UDim2.fromOffset(34, 34),
-        BackgroundColor3 = palette.Accent,
-        BackgroundTransparency = hasCustomLogo and 1 or 0.82,
+        Name = "BrandMark",
+        Position = UDim2.fromOffset(17, math.floor((64 - logoSize) * 0.5)),
+        Size = UDim2.fromOffset(logoSize, logoSize),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Parent = sidebar,
     })
-    self:_bind(brandMark, "BackgroundColor3", "Accent")
-    round(brandMark, 10)
     local brandLetter = create("TextLabel", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Text = "N",
+        Text = config.LogoText or "NW",
         TextColor3 = palette.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 17,
+        TextSize = config.LogoTextSize or 16,
+        FontRole = "Bold",
+        NoGradient = true,
         Parent = brandMark,
     })
     self:_bind(brandLetter, "TextColor3", "Text")
     if hasCustomLogo then
         brandLetter.Visible = false
-        create("ImageLabel", {
-            Size = UDim2.fromScale(1, 1),
+        local brandImage = create("ImageLabel", {
+            Position = UDim2.fromOffset(logoInset, logoInset),
+            Size = UDim2.new(1, -logoInset * 2, 1, -logoInset * 2),
             BackgroundTransparency = 1,
             Image = config.Logo,
+            ImageTransparency = 1,
             ScaleType = Enum.ScaleType.Fit,
             Parent = brandMark,
         })
+        tween(brandImage, 0.3, { ImageTransparency = config.LogoTransparency or 0 })
     end
 
+    local brandOffset = 17 + logoSize + 10
     local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(61, 11),
-        Size = UDim2.new(1, -75, 0, 42),
+        Position = UDim2.fromOffset(brandOffset, 11),
+        Size = UDim2.new(1, -brandOffset - 12, 0, 42),
         BackgroundTransparency = 1,
         Text = config.Title or "Northwind",
         TextColor3 = palette.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 19,
+        TextSize = config.TitleSize or 20,
         TextXAlignment = Enum.TextXAlignment.Left,
+        FontRole = "Bold",
+        NoGradient = true,
         Parent = sidebar,
     })
     self:_bind(brand, "TextColor3", "Text")
@@ -907,7 +1229,6 @@ function Northwind:CreateWindow(config)
         Parent = content,
     })
     self:_bind(primarySubtab, "TextColor3", "Text")
-    self:_attachTextGradient(primarySubtab)
     local secondarySubtab = create("TextButton", {
         Position = UDim2.fromOffset(100, 62),
         Size = UDim2.fromOffset(42, 22),
@@ -922,7 +1243,6 @@ function Northwind:CreateWindow(config)
         Parent = content,
     })
     self:_bind(secondarySubtab, "TextColor3", "Muted")
-    self:_attachTextGradient(secondarySubtab)
 
     local activeSubtab = create("Frame", {
         Position = UDim2.fromOffset(24, 88),
@@ -967,6 +1287,11 @@ function Northwind:CreateWindow(config)
         Tabs = {},
         Panels = {},
         Logo = config.Logo,
+        LogoStyle = logoStyle,
+        LogoText = config.LogoText or "NW",
+        LogoSize = logoSize,
+        BrandLabel = brand,
+        LogoLabel = brandLetter,
         PanelsFollowMenuVisibility = config.PanelsFollowMenuVisibility ~= false,
         Visible = true,
         ToggleKey = config.ToggleKey or Enum.KeyCode.RightShift,
@@ -978,6 +1303,10 @@ function Northwind:CreateWindow(config)
     }, Window)
 
     table.insert(self.Windows, window)
+    self:_attachBrandGradient(brand, "Brand")
+    if not hasCustomLogo then
+        self:_attachBrandGradient(brandLetter, "Logo")
+    end
     window:_initInputController()
     window:_bindDrag(brand, main)
 
@@ -1132,6 +1461,21 @@ function Window:SetPanelsFollowMenuVisibility(follow)
     end
 end
 
+function Window:SetBrandGradient(settings)
+    self.Library:SetBrandGradient(settings)
+    return self
+end
+
+function Window:SetTypography(preset)
+    self.Library:SetTypography(preset)
+    return self
+end
+
+function Window:SetMotion(enabled, speed)
+    self.Library:SetMotion(enabled, speed)
+    return self
+end
+
 function Window:SetHeaderSubtab(name)
     if not self.SettingsTab or self._activeTab ~= self.SettingsTab then
         return
@@ -1184,11 +1528,33 @@ function Window:Destroy()
             table.remove(self.Library._themeBindings, index)
         end
     end
+    for index = #self.Library._fontBindings, 1, -1 do
+        local binding = self.Library._fontBindings[index]
+        if not binding.Instance or not binding.Instance.Parent then
+            table.remove(self.Library._fontBindings, index)
+        end
+    end
+    for index = #self.Library._textGradientTargets, 1, -1 do
+        local target = self.Library._textGradientTargets[index]
+        if not target or not target.Parent then
+            table.remove(self.Library._textGradientTargets, index)
+        end
+    end
     for index = #self.Library._textGradients, 1, -1 do
         local gradient = self.Library._textGradients[index]
         if not gradient or not gradient.Parent then
             table.remove(self.Library._textGradients, index)
         end
+    end
+    for index = #self.Library._brandGradients, 1, -1 do
+        local binding = self.Library._brandGradients[index]
+        if not binding.Gradient or not binding.Gradient.Parent then
+            table.remove(self.Library._brandGradients, index)
+        end
+    end
+    if #self.Library.Windows == 0 and self.Library._brandGradientConnection then
+        self.Library._brandGradientConnection:Disconnect()
+        self.Library._brandGradientConnection = nil
     end
 end
 
@@ -1469,6 +1835,9 @@ function Tab:AddSection(config)
     round(frame, 11)
     local frameStroke = stroke(frame, palette.Border, 0.52)
     self.Library:_bind(frameStroke, "Color", "Border")
+    addSurfaceMotion(frame, frameStroke, 0.10, 0.055)
+    local sectionScale = create("UIScale", { Scale = 0.985, Parent = frame })
+    tween(sectionScale, 0.26, { Scale = 1 }, Enum.EasingStyle.Quint)
     padding(frame, 14, 14, 12, 14)
 
     local header = create("Frame", {
@@ -2216,7 +2585,7 @@ function Window:CreateStatusBar(config)
     local palette = self.Library:_theme()
     local frame = create("Frame", {
         Position = config.Position or UDim2.fromOffset(16, 28),
-        Size = config.Size or UDim2.fromOffset(276, 36),
+        Size = config.Size or UDim2.fromOffset(284, 36),
         BackgroundColor3 = palette.Surface,
         BackgroundTransparency = 0.16,
         BorderSizePixel = 0,
@@ -2226,61 +2595,82 @@ function Window:CreateStatusBar(config)
     round(frame, 9)
     local frameStroke = stroke(frame, palette.Border, 0.42)
     self.Library:_bind(frameStroke, "Color", "Border")
+    addSurfaceMotion(frame, frameStroke, 0.16, 0.09, 0.42)
+    local statusScale = create("UIScale", { Scale = 0.97, Parent = frame })
+    tween(statusScale, 0.26, { Scale = 1 }, Enum.EasingStyle.Quint)
+
+    if config.GradientFPS ~= nil then
+        self.Library:SetBrandGradient({ ApplyToFPS = config.GradientFPS })
+    end
     local logoImage = config.Logo or self.Logo
     local hasCustomLogo = type(logoImage) == "string" and logoImage ~= ""
+    local logoStyle = config.LogoStyle or self.LogoStyle or (hasCustomLogo and "Image" or "Monogram")
+    hasCustomLogo = hasCustomLogo and logoStyle == "Image"
+    local logoSize = math.clamp(tonumber(config.LogoSize) or 26, 20, 30)
+    local logoInset = math.clamp(tonumber(config.LogoInset) or 0, 0, 6)
     local logo = create("Frame", {
-        Position = UDim2.fromOffset(8, 6),
-        Size = UDim2.fromOffset(24, 24),
-        BackgroundColor3 = palette.Accent,
-        BackgroundTransparency = hasCustomLogo and 1 or 0.82,
+        Name = "BrandMark",
+        Position = UDim2.fromOffset(8, math.floor((36 - logoSize) * 0.5)),
+        Size = UDim2.fromOffset(logoSize, logoSize),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Parent = frame,
     })
-    self.Library:_bind(logo, "BackgroundColor3", "Accent")
-    round(logo, 7)
     local logoLetter = create("TextLabel", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Text = "N",
+        Text = config.LogoText or self.LogoText or "NW",
         TextColor3 = palette.Text,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
+        TextSize = config.LogoTextSize or 12,
+        FontRole = "Bold",
+        NoGradient = true,
         Parent = logo,
     })
     self.Library:_bind(logoLetter, "TextColor3", "Text")
     if hasCustomLogo then
         logoLetter.Visible = false
-        create("ImageLabel", {
-            Size = UDim2.fromScale(1, 1),
+        local logoImageLabel = create("ImageLabel", {
+            Position = UDim2.fromOffset(logoInset, logoInset),
+            Size = UDim2.new(1, -logoInset * 2, 1, -logoInset * 2),
             BackgroundTransparency = 1,
             Image = logoImage,
+            ImageTransparency = 1,
             ScaleType = Enum.ScaleType.Fit,
             Parent = logo,
         })
+        tween(logoImageLabel, 0.28, { ImageTransparency = config.LogoTransparency or 0 })
     end
+    local brandOffset = 8 + logoSize + 7
     local brand = create("TextLabel", {
-        Position = UDim2.fromOffset(39, 0),
-        Size = UDim2.fromOffset(89, 36),
+        Position = UDim2.fromOffset(brandOffset, 0),
+        Size = UDim2.fromOffset(128 - brandOffset, 36),
         BackgroundTransparency = 1,
         Text = config.Title or "Northwind",
-        TextColor3 = palette.Accent,
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
+        TextColor3 = palette.Text,
+        TextSize = config.TitleSize or 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        FontRole = "Bold",
+        NoGradient = true,
         Parent = frame,
     })
-    self.Library:_bind(brand, "TextColor3", "Accent")
+    self.Library:_bind(brand, "TextColor3", "Text")
+    self.Library:_attachBrandGradient(brand, "Brand")
+    if not hasCustomLogo then
+        self.Library:_attachBrandGradient(logoLetter, "Logo")
+    end
     local fps = create("TextLabel", {
         Position = UDim2.fromOffset(130, 0),
         Size = UDim2.fromOffset(65, 36),
         BackgroundTransparency = 1,
         Text = "FPS --",
         TextColor3 = palette.Text,
-        Font = Enum.Font.Gotham,
         TextSize = 11,
+        FontRole = "Medium",
+        NoGradient = true,
         Parent = frame,
     })
     self.Library:_bind(fps, "TextColor3", "Text")
+    self.Library:_attachBrandGradient(fps, "FPS")
     local separatorA = create("Frame", {
         Position = UDim2.fromOffset(128, 10),
         Size = UDim2.fromOffset(1, 16),
@@ -2295,8 +2685,9 @@ function Window:CreateStatusBar(config)
         BackgroundTransparency = 1,
         Text = "00:00:00",
         TextColor3 = palette.Text,
-        Font = Enum.Font.Gotham,
         TextSize = 11,
+        FontRole = "Regular",
+        NoGradient = true,
         Parent = frame,
     })
     self.Library:_bind(clock, "TextColor3", "Text")
@@ -2359,6 +2750,9 @@ function Window:CreatePanel(config)
     round(frame, 9)
     local frameStroke = stroke(frame, palette.Border, 0.42)
     self.Library:_bind(frameStroke, "Color", "Border")
+    addSurfaceMotion(frame, frameStroke, 0.16, 0.09, 0.42)
+    local panelScale = create("UIScale", { Scale = 0.98, Parent = frame })
+    tween(panelScale, 0.24, { Scale = 1 }, Enum.EasingStyle.Quint)
     padding(frame, 10, 10, 9, 10)
     local layout = create("UIListLayout", {
         Padding = UDim.new(0, 5),
@@ -2676,6 +3070,107 @@ function Window:_createSettingsTab()
     finishInput.Save = false
     directionOption.Save = false
 
+    local brandSection = typePage:AddSection({
+        Name = "Brand gradient",
+        Description = "Menu, logo, and status-bar shimmer",
+        Icon = "sparkles",
+        Side = "Right",
+    })
+    local brandEnabled = brandSection:AddToggle("Northwind_BrandGradientEnabled", {
+        Text = "Enable brand gradient",
+        Default = self.Library.BrandGradient.Enabled,
+        Callback = function(value)
+            self.Library:SetBrandGradient({ Enabled = value })
+        end,
+    })
+    local brandAnimated = brandSection:AddToggle("Northwind_BrandGradientAnimated", {
+        Text = "Animate gradient",
+        Default = self.Library.BrandGradient.Animated,
+        Callback = function(value)
+            self.Library:SetBrandGradient({ Animated = value })
+        end,
+    })
+    local brandFPS = brandSection:AddToggle("Northwind_BrandGradientFPS", {
+        Text = "Gradient FPS readout",
+        Default = self.Library.BrandGradient.ApplyToFPS,
+        Callback = function(value)
+            self.Library:SetBrandGradient({ ApplyToFPS = value })
+        end,
+    })
+    local brandSpeed = brandSection:AddSlider("Northwind_BrandGradientSpeed", {
+        Text = "Animation speed",
+        Min = 5,
+        Max = 200,
+        Default = math.floor(self.Library.BrandGradient.Speed * 100 + 0.5),
+        Suffix = "%",
+        Callback = function(value)
+            self.Library:SetBrandGradient({ Speed = value / 100 })
+        end,
+    })
+    local brandStart = brandSection:AddInput("Northwind_BrandGradientStart", {
+        Text = "Start color",
+        Default = colorToHex(self.Library.BrandGradient.Start),
+        Placeholder = "#F8F9FF",
+        Callback = function(value)
+            local color = hexToColor(value)
+            if color then
+                self.Library:SetBrandGradient({ Start = color })
+            end
+        end,
+    })
+    local brandFinish = brandSection:AddInput("Northwind_BrandGradientFinish", {
+        Text = "End color",
+        Default = colorToHex(self.Library.BrandGradient.Finish),
+        Placeholder = "#7C8AFF",
+        Callback = function(value)
+            local color = hexToColor(value)
+            if color then
+                self.Library:SetBrandGradient({ Finish = color })
+            end
+        end,
+    })
+    brandEnabled.Save = false
+    brandAnimated.Save = false
+    brandFPS.Save = false
+    brandSpeed.Save = false
+    brandStart.Save = false
+    brandFinish.Save = false
+
+    local typographySection = typePage:AddSection({
+        Name = "Typography & motion",
+        Description = "Font family and animation feel",
+        Icon = "sliders",
+        Side = "Left",
+    })
+    local fontPreset = typographySection:AddDropdown("Northwind_FontPreset", {
+        Text = "Font",
+        Values = { "Builder Sans", "Gotham", "Source Sans" },
+        Default = self.Library.TypographyPreset ~= "Custom" and self.Library.TypographyPreset or "Builder Sans",
+        Callback = function(value)
+            self.Library:SetTypography(value)
+        end,
+    })
+    local motionEnabled = typographySection:AddToggle("Northwind_MotionEnabled", {
+        Text = "Smooth animations",
+        Default = self.Library.Motion.Enabled,
+        Callback = function(value)
+            self.Library:SetMotion(value)
+        end,
+    })
+    local motionSpeed = typographySection:AddSlider("Northwind_MotionSpeed", {
+        Text = "Motion speed",
+        Min = 25,
+        Max = 200,
+        Default = math.floor(self.Library.Motion.Speed * 100 + 0.5),
+        Suffix = "%",
+        Callback = function(value)
+            self.Library:SetMotion(nil, value / 100)
+        end,
+    })
+    fontPreset.Save = false
+    motionEnabled.Save = false
+    motionSpeed.Save = false
+
     local previewSection = typePage:AddSection({
         Name = "Preview",
         Description = "Updates instantly",
@@ -2683,8 +3178,8 @@ function Window:_createSettingsTab()
         Side = "Right",
     })
     previewSection:AddLabel("Northwind UI")
-    previewSection:AddDivider("Smooth gradient")
-    previewSection:AddLabel("Titles, labels, panel data, and navigation text use the selected gradient. Input and button backgrounds stay clean and readable.")
+    previewSection:AddDivider("Clean hierarchy")
+    previewSection:AddLabel("Body text stays crisp and restrained while brand text can use an animated gradient. Motion, font family, gradient colors, speed, and FPS styling are all adjustable.")
 
     self.TypeSubtabButton.Visible = self._activeTab == settings
     if self._activeTab == settings then
