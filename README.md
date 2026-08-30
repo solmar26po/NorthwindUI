@@ -1,6 +1,6 @@
 # Northwind UI
 
-Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded dashboard shell, smooth color transitions, crisp code-drawn vector icons, detachable telemetry panels, and concise reusable controls.
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Builder Sans typography, animated brand gradients, clean borderless marks, crisp code-drawn icons, detachable telemetry panels, and reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -42,7 +42,27 @@ local Window = Library:CreateWindow({
     Transparency = 0.06,
     CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
-    Logo = "rbxassetid://1234567890",
+
+    FontPreset = "Builder Sans",
+    Motion = {
+        Enabled = true,
+        Speed = 1,
+    },
+    BrandGradient = {
+        Enabled = true,
+        Animated = true,
+        Start = Color3.fromRGB(248, 249, 255),
+        Finish = Color3.fromRGB(124, 138, 255),
+        Speed = 0.45,
+        ApplyToFPS = true,
+    },
+
+    LogoStyle = "Monogram",
+    LogoText = "NW",
+    LogoSize = 38,
+    -- To use an uploaded image instead:
+    -- LogoStyle = "Image",
+    -- Logo = "rbxassetid://1234567890",
 })
 
 local Main = Window:AddTab({
@@ -107,7 +127,10 @@ Icons use Roblox UI primitives rather than Unicode glyphs, so they do not render
 ## Detached panels
 
 ```lua
-Window:CreateStatusBar({ Title = "My Menu" })
+Window:CreateStatusBar({
+    Title = "My Menu",
+    GradientFPS = true,
+})
 
 local Panel = Window:CreatePanel({
     Title = "Session",
@@ -124,22 +147,32 @@ Progress:Set(70)
 
 Set `FollowMenuVisibility = true` on any status bar or detached panel that should close with the main menu. Set it to `false` to keep that panel visible. The generated Settings page also includes a **Keep panels visible** switch that updates every detached panel at once.
 
-## Logo
+## Branding
 
-Upload `assets/NorthwindLogo.png` to Roblox as an image asset, copy its asset ID, and pass it to the window:
+The clean code-native monogram is the default recommendation:
 
 ```lua
 local Window = Library:CreateWindow({
     Title = "Northwind",
-    Logo = "rbxassetid://YOUR_IMAGE_ASSET_ID",
+    LogoStyle = "Monogram",
+    LogoText = "NW",
+    LogoSize = 38,
 })
 ```
 
-The same logo is inherited by the detached status bar. You can override it with `Logo` inside `CreateStatusBar`. Custom images render edge-to-edge inside a larger borderless logo box; the soft letter tile remains as the fallback when no image is supplied.
+To use `assets/NorthwindLogo.png`, upload it to Roblox and use `LogoStyle = "Image"` with its asset ID. `LogoInset`, `LogoSize`, `LogoTextSize`, `TitleSize`, and `LogoTransparency` control presentation without adding an outlined container. The status bar inherits the same image or monogram and can override any of these fields.
+
+## Typography, gradients, and motion
+
+Builder Sans is the default font. `FontPreset` accepts `"Builder Sans"`, `"Gotham"`, or `"Source Sans"`; `Typography` can instead provide custom `Regular`, `Medium`, and `Bold` Font values.
+
+`BrandGradient` controls the animated menu name, monogram, status title, and optional FPS readout. It supports `Enabled`, `Animated`, `Start`, `Finish`, `Rotation`, `Speed`, and `ApplyToFPS`. The generated Type settings page exposes all common controls live. General interface text remains plain by default, while the existing optional interface-wide text gradient can still be enabled separately.
+
+`Motion.Enabled` disables transitions for reduced motion, and `Motion.Speed` scales their duration. Repeated animations targeting the same properties cancel cleanly instead of stacking.
 
 ## Lifecycle and performance
 
-Each window owns one shared pointer controller for dragging and sliders, plus one routed key-input listener. `Window:Destroy()` disconnects them, clears retained theme references, and removes the window from the library registry. Creating another window with the same `Name` automatically destroys the previous instance cleanly.
+Each window owns one shared pointer controller for dragging and sliders, plus one routed key-input listener. `Window:Destroy()` disconnects them, clears retained theme, font, and gradient references, and removes the window from the library registry. Creating another window with the same `Name` automatically destroys the previous instance cleanly.
 
 ## Themes and configs
 
@@ -148,7 +181,9 @@ The Settings tab is generated automatically unless `Settings = false` is passed 
 - Midnight, Obsidian, and Nord theme presets
 - Six accent colors with live transitions
 - Toggle-interface keybind editing
-- A functional **Type** page with editable start/end hex colors and gradient direction
+- A functional **Type** page with Builder Sans/Gotham/Source Sans presets
+- Animated brand-gradient colors, speed, logo/status styling, and FPS control
+- Optional interface-wide text gradient plus reduced-motion and animation-speed controls
 - Detached-panel visibility behavior
 - Config save, load, and delete controls
 
