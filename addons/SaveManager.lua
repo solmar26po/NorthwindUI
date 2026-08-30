@@ -1,10 +1,3 @@
---[[
-    Northwind UI config helper.
-    The default provider stores configs for the current session. For persistent
-    saving, attach a provider whose Save/Load/Delete/List methods communicate
-    with a server-owned DataStore or another storage system you control.
-]]
-
 local SaveManager = {
     Library = nil,
     Provider = nil,

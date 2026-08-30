@@ -1,6 +1,10 @@
 # Northwind UI
 
-Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Builder Sans typography, animated brand gradients, clean borderless marks, crisp code-drawn icons, detachable telemetry panels, and reusable controls.
+> This UI is free to use and made by Solmar26.
+
+Discord: **@solmar793**
+
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Gotham typography, animated brand gradients, clean borderless marks, crisp code-drawn icons, detachable telemetry panels, a local-character ESP preview, and reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -43,7 +47,7 @@ local Window = Library:CreateWindow({
     CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
 
-    FontPreset = "Builder Sans",
+    FontPreset = "Gotham",
     Motion = {
         Enabled = true,
         Speed = 1,
@@ -147,6 +151,29 @@ Progress:Set(70)
 
 Set `FollowMenuVisibility = true` on any status bar or detached panel that should close with the main menu. Set it to `false` to keep that panel visible. The generated Settings page also includes a **Keep panels visible** switch that updates every detached panel at once.
 
+## ESP preview
+
+Pass an `ESPPreview` table to `CreateWindow` to attach a live `ViewportFrame` to the right side of the menu. It safely clones the local character without scripts, anchors it as a presentation dummy, and includes configurable name, box, health, distance, tracer, and rotation styling.
+
+```lua
+local Window = Library:CreateWindow({
+    Title = "Northwind",
+    ESPPreview = {
+        Width = 232,
+        Height = 372,
+        FollowMenuVisibility = true,
+        ShowBox = true,
+        ShowName = true,
+        ShowHealth = true,
+        ShowTracer = true,
+        RotationSpeed = 12,
+    },
+})
+
+Window.ESPPreview:SetRotationSpeed(20)
+Window.ESPPreview:RefreshCharacter()
+```
+
 ## Branding
 
 The clean code-native monogram is the default recommendation:
@@ -164,7 +191,7 @@ To use `assets/NorthwindLogo.png`, upload it to Roblox and use `LogoStyle = "Ima
 
 ## Typography, gradients, and motion
 
-Builder Sans is the default font. `FontPreset` accepts `"Builder Sans"`, `"Gotham"`, or `"Source Sans"`; `Typography` can instead provide custom `Regular`, `Medium`, and `Bold` Font values.
+Gotham is the default font. `FontPreset` accepts `"Gotham"`, `"Builder Sans"`, or `"Source Sans"`; `Typography` can instead provide custom `Regular`, `Medium`, and `Bold` Font values.
 
 `BrandGradient` controls the animated menu name, monogram, status title, and optional FPS readout. It supports `Enabled`, `Animated`, `Start`, `Finish`, `Rotation`, `Speed`, and `ApplyToFPS`. The generated Type settings page exposes all common controls live. General interface text remains plain by default, while the existing optional interface-wide text gradient can still be enabled separately.
 
@@ -181,11 +208,11 @@ The Settings tab is generated automatically unless `Settings = false` is passed 
 - Midnight, Obsidian, and Nord theme presets
 - Six accent colors with live transitions
 - Toggle-interface keybind editing
-- A functional **Type** page with Builder Sans/Gotham/Source Sans presets
+- A functional **Type** page with Gotham/Builder Sans/Source Sans presets
 - Animated brand-gradient colors, speed, logo/status styling, and FPS control
 - Optional interface-wide text gradient plus reduced-motion and animation-speed controls
 - Detached-panel visibility behavior
-- Config save, load, and delete controls
+- Config save, load, delete, refresh, and saved-config dropdown controls
 
 Configs use memory storage by default. To persist them safely in an experience you own, attach a provider that sends config data to a server-owned DataStore. A provider implements `Save`, `Load`, `Delete`, and optionally `List`.
 
@@ -193,6 +220,4 @@ Configs use memory storage by default. To persist them safely in an experience y
 SaveManager:SetLibrary(Library)
 SaveManager:SetProvider(myProvider)
 ```
-
-Never trust client-supplied config data for gameplay-critical decisions; validate it on the server.
 
