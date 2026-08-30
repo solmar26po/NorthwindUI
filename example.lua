@@ -23,8 +23,25 @@ local Window = Library:CreateWindow({
     Transparency = 0.06,
     CornerRadius = 18,
     PanelsFollowMenuVisibility = false,
-    -- After uploading assets/NorthwindLogo.png to Roblox:
-    Logo = "rbxassetid://131649619262206",
+    FontPreset = "Builder Sans",
+    Motion = {
+        Enabled = true,
+        Speed = 1,
+    },
+    BrandGradient = {
+        Enabled = true,
+        Animated = true,
+        Start = Color3.fromRGB(248, 249, 255),
+        Finish = Color3.fromRGB(124, 138, 255),
+        Speed = 0.45,
+        ApplyToFPS = true,
+    },
+    LogoStyle = "Monogram",
+    LogoText = "NW",
+    LogoSize = 38,
+    -- Image alternative:
+    -- LogoStyle = "Image",
+    -- Logo = "rbxassetid://131649619262206",
 })
 
 -- Detached HUD elements like the reference image.
@@ -32,6 +49,7 @@ Window:CreateStatusBar({
     Title = "Northwind",
     Position = UDim2.fromOffset(16, 28),
     FollowMenuVisibility = false,
+    GradientFPS = true,
 })
 
 local KeybindPanel = Window:CreatePanel({
