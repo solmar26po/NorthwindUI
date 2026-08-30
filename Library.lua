@@ -3516,9 +3516,9 @@ function ESPPreview:_connect(signal, callback)
     return connection
 end
 
-function ESPPreview:SetFollowMenuVisibility(follow)
-    self.FollowMenuVisibility = follow == true
-    self.Frame.Visible = self.Enabled and ((not self.FollowMenuVisibility) or self.Window.Visible)
+function ESPPreview:SetFollowMenuVisibility(_follow)
+    self.FollowMenuVisibility = true
+    self.Frame.Visible = self.Enabled and self.Window.Visible
     return self
 end
 
@@ -3876,10 +3876,7 @@ function Window:CreateESPPreview(config)
     })
     self.Library:_bind(emptyLabel, "TextColor3", "Muted")
 
-    local followVisibility = config.FollowMenuVisibility
-    if followVisibility == nil then
-        followVisibility = self.PanelsFollowMenuVisibility
-    end
+    local followVisibility = true
     local preview = setmetatable({
         Window = self,
         Frame = frame,
