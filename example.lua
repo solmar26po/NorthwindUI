@@ -4,6 +4,9 @@ local repo = "https://raw.githubusercontent.com/solmar26po/NorthwindUI/main/"
 local Players = game:GetService("Players")
 
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+-- The bundled PNG atlas loads automatically when local image assets are available.
+-- In Studio, upload assets/NorthwindIcons.png and set its image ID before CreateWindow:
+-- Library:SetIconAtlas("rbxassetid://YOUR_UPLOADED_IMAGE_ID")
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
@@ -355,6 +358,57 @@ ThemePreview:AddColorPicker("ExampleCardColor", {
 })
 ThemePreview:AddLabel("Open Settings for every palette surface and animation preset, or Settings → Type for typography and gradients.")
 
+local Icons = Window:AddTab({
+    Name = "Icons",
+    Description = "Northwind outline collection",
+    Icon = "layers",
+})
+local NavigationIcons = Icons:AddSection({
+    Name = "Interface",
+    Description = "Small, regular, and large",
+    Icon = "window",
+    Side = "Left",
+})
+local UtilityIcons = Icons:AddSection({
+    Name = "Tools & details",
+    Description = "Theme colors apply to every icon",
+    Icon = "sparkles",
+    Side = "Right",
+})
+-- Real icon instances at the sizes used by the library, not enlarged thumbnails.
+local function addIconSample(section, name)
+    local row = Instance.new("Frame")
+    row.Name = name
+    row.Size = UDim2.new(1, 0, 0, 32)
+    row.BackgroundTransparency = 1
+    row.Parent = section.Controls
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -105, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 11
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = row
+    Library:_bind(label, "TextColor3", "Muted")
+    for index, size in ipairs({ 16, 20, 24 }) do
+        Library:CreateIcon(row, {
+            Name = name,
+            Position = UDim2.new(1, -108 + (index - 1) * 36 + (24 - size) / 2, 0, (32 - size) / 2),
+            Size = UDim2.fromOffset(size, size),
+            ColorToken = index == 3 and "Accent" or "Text",
+        })
+    end
+end
+for index, name in ipairs(Library:GetIconNames()) do
+    addIconSample(index <= 10 and NavigationIcons or UtilityIcons, name)
+end
+NavigationIcons:AddButton("Try Midnight", function() ThemeManager:ApplyTheme("Midnight") end)
+UtilityIcons:AddButton("Try Nord", function() ThemeManager:ApplyTheme("Nord") end)
+-- Useful when checking a client that does not expose local image loading.
+print("[Northwind] Icons: " .. Library:GetIconRenderer())
+Window:SelectTab(Icons)
+
 -- Live values keep the showcase moving without changing gameplay.
 local started = os.clock()
 task.spawn(function()
@@ -369,6 +423,6 @@ end)
 menuKey:Set("R-Shift")
 Window:Notify({
     Title = "Northwind loaded",
-    Description = "Press RightShift to show or hide the complete interface.",
+    Description = "The Icons tab previews the new set. RightShift toggles the interface.",
     Duration = 4,
 })

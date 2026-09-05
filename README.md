@@ -4,7 +4,7 @@
 
 Discord: **@solmar793**
 
-Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Gotham typography, animated brand gradients, compact controls, live palette editing, upgraded code-drawn icons, pooled atmospheric effects, detachable telemetry panels, a local-character ESP preview, and reusable controls.
+Northwind UI is an original Roblox/Luau interface library with a translucent dark dashboard design, a fully rounded shell, Gotham typography, animated brand gradients, compact controls, live palette editing, an original PNG outline icon set, pooled atmospheric effects, detachable telemetry panels, a local-character ESP preview, and reusable controls.
 
 It contains UI components only. The included example uses harmless test callbacks and mock telemetry.
 
@@ -15,7 +15,13 @@ NorthwindUI/
 ├── Library.lua
 ├── example.lua
 ├── assets/
-│   └── NorthwindLogo.png
+│   ├── NorthwindLogo.png
+│   ├── NorthwindIcons.png
+│   └── NorthwindIcons.svg
+├── scripts/
+│   └── build-icons.cjs
+├── tests/
+│   └── icons.cjs
 └── addons/
     ├── SaveManager.lua
     └── ThemeManager.lua
@@ -149,7 +155,25 @@ Section:AddColorPicker("MyColor", {
 
 Values are also available through `Library.Flags`, and control objects expose `GetValue()`, `SetValue(value)`, and `OnChanged(callback)`.
 
-Icons use Roblox UI primitives rather than Unicode glyphs, so they do not render as missing-glyph squares. The refreshed set includes `home`, `eye`, `sliders`, `settings`, `window`, `palette`, `save`, `keyboard`, `clock`, `target`, `activity`, `sparkles`, `comet`, `snowflake`, `type`, and `layers`. A custom `rbxassetid://...` image can also be supplied through `Icon`.
+Icons use an original set of 20 rounded outlines with consistent stroke widths and spacing. Each is rendered from a transparent white PNG atlas and tinted by the current theme. Navigation hover and selection colors work as before. Existing icon names, aliases, legacy symbols, and custom `Icon = "rbxassetid://..."` images remain supported.
+
+The atlas is **480 × 384 pixels**, arranged in five columns with 96 × 96 cells. `Library.lua` embeds the same PNG bytes, so no extra HTTP download is needed. When `writefile` and `getcustomasset` (or `getsynasset`) are available, the library validates a content-addressed local cache and registers the image once. It creates one ImageLabel per icon and does no per-frame icon work. Without those capabilities it retains the native UI-primitive fallback.
+
+For a standard Roblox experience, upload `assets/NorthwindIcons.png` as an image asset without resizing it, then configure its ID **before creating the window**:
+
+```lua
+Library:SetIconAtlas("rbxassetid://YOUR_UPLOADED_IMAGE_ID")
+```
+
+Atlas slicing and theme tinting use Roblox's [ImageLabel properties](https://create.roblox.com/docs/reference/engine/classes/ImageLabel). A raw GitHub PNG URL is not a replacement for an uploaded Roblox image URI.
+
+`Library:GetIconNames()` returns a copy of the 20 canonical names. `Library:GetIconRenderer()` reports `PNG atlas` when an atlas URI is selected, or `Native fallback`; this is not a check of Roblox's asynchronous image-loading status. `SetIconAtlas(false)` selects the fallback for newly created icons, and `SetIconAtlas(nil)` restores automatic loading. Changing this setting does not replace already-created icons.
+
+Custom layouts can use `Library:CreateIcon(parent, { Name = "settings", Size = UDim2.fromOffset(20, 20), ColorToken = "Accent" })`, which returns the icon's Frame. Optional `Position` uses a UDim2. `example.lua` opens an Icons gallery showing all 20 icons at 16, 20, and 24 pixels, plus theme test buttons.
+
+The original vector artwork is maintained in `scripts/build-icons.cjs`. To edit it, install `sharp` with `npm install --no-save sharp`, then run `node scripts/build-icons.cjs` from the repository root. This rebuilds both assets and the embedded data in `Library.lua`. Keep them in the same commit. The icon artwork uses this repository's MIT license.
+
+To run the icon regression checks, point `LUAU_BIN` at the official Luau CLI and run `node tests/icons.cjs`. These checks verify PNG byte preservation, all atlas coordinates, aliases, theme bindings, one-time loading, cache repair, and fallback behavior with mocked UI objects. They do not replace an in-client rendering check.
 
 ## Detached panels
 
@@ -257,4 +281,3 @@ Configs use memory storage by default. To persist them safely in an experience y
 SaveManager:SetLibrary(Library)
 SaveManager:SetProvider(myProvider)
 ```
-
